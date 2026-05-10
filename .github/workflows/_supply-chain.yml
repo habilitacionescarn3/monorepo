@@ -1,0 +1,166 @@
+name: Supply chain
+
+on:
+  workflow_call:
+    inputs:
+      artifact-path:
+        description: "Path to the built artifact (file or directory) to attest and SBOM"
+        required: true
+        type: string
+      package-name:
+        description: "Logical name (used in SBOM artifact filenames)"
+        required: true
+        type: string
+      version:
+        description: "Version string (sha for CI, tag for release)"
+        required: true
+        type: string
+      release-mode:
+        description: "If true, also attach SBOM and signatures to the GitHub Release"
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      sbom-artifact-name:
+        description: "Name of the uploaded SBOM artifact"
+        value: ${{ jobs.supply-chain.outputs.sbom-artifact-name }}
+      attestation-digest:
+        description: "SHA256 of the attested artifact"
+        value: ${{ jobs.supply-chain.outputs.attestation-digest }}
+
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+  packages: write
+
+jobs:
+  supply-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      sbom-artifact-name: sbom-${{ inputs.package-name }}-${{ inputs.version }}.cdx.json
+      attestation-digest: ${{ steps.hash.outputs.sha256 }}
+    steps:
+      - uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.19.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compute artifact digest
+        id: hash
+        env:
+          ARTIFACT_PATH: ${{ inputs.artifact-path }}
+        run: |
+          set -euo pipefail
+          if [ -d "$ARTIFACT_PATH" ]; then
+            DIGEST=$(find "$ARTIFACT_PATH" -type f -print0 \
+              | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
+          else
+            DIGEST=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+          fi
+          echo "sha256=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      # 1. SBOM (CycloneDX 1.6) via syft
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: ${{ inputs.artifact-path }}
+          format: cyclonedx-json
+          artifact-name: sbom-${{ inputs.package-name }}-${{ inputs.version }}.cdx.json
+          output-file: ./sbom.cdx.json
+          upload-artifact: true
+          upload-artifact-retention: 30
+        env:
+          SYFT_JAVASCRIPT_INCLUDE_DEV_DEPENDENCIES: "false"
+          SYFT_FORMAT_CYCLONEDX_JSON_VERSION: "1.6"
+
+      # 2. SLSA L2 build provenance
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: ${{ inputs.artifact-path }}
+          subject-name: ${{ inputs.package-name }}@${{ inputs.version }}
+
+      # 3. Cosign keyless signing of SBOM (and artifact when it is a file)
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Cosign sign SBOM
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --bundle sbom.cdx.json.cosign.bundle \
+            sbom.cdx.json
+
+      - name: Cosign sign artifact (file only)
+        if: ${{ !endsWith(inputs.artifact-path, '/') }}
+        env:
+          ARTIFACT_PATH: ${{ inputs.artifact-path }}
+          PACKAGE_NAME: ${{ inputs.package-name }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -f "$ARTIFACT_PATH" ]; then
+            cosign sign-blob --yes \
+              --bundle "${PACKAGE_NAME}-${VERSION}.cosign.bundle" \
+              "$ARTIFACT_PATH"
+          fi
+
+      # 4. Upload SBOM + signature bundles as workflow artifacts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: supply-chain-${{ inputs.package-name }}-${{ inputs.version }}
+          path: |
+            sbom.cdx.json
+            sbom.cdx.json.cosign.bundle
+            *.cosign.bundle
+          retention-days: 30
+          if-no-files-found: warn
+
+      # 5. Release-mode: attach to the GitHub Release
+      - name: Attach to release
+        if: ${{ inputs.release-mode }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          gh release upload "$VERSION" \
+            sbom.cdx.json \
+            sbom.cdx.json.cosign.bundle \
+            ./*.cosign.bundle \
+            --clobber
+
+  license-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.19.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+        shell: bash
+      - name: License allowlist (pnpm-native)
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm licenses list --recursive --json > licenses.json
+          node scripts/license-check.mjs --input licenses.json
