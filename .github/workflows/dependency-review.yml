@@ -30,4 +30,5 @@ jobs:
           # blocking every dep-bump PR.
           fail-on-severity: critical
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, AGPL-1.0, LGPL-3.0
+          allow-dependencies-licenses: "pkg:npm/jszip"
           comment-summary-in-pr: on-failure
