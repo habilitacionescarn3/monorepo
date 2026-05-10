@@ -43,6 +43,18 @@ READ the source file first. Never guess exports. The export list is at the botto
 Agent-specific runbooks live in `docs/runbooks/`:
 - `SHOWCASE-RUNBOOK.md`: instructions for adding component demos to the showcase page
 
+## Dependency Update Coverage Rule
+
+Every versioned dependency merged to main MUST have automated update tracking:
+
+1. **Dependabot covers it?** (npm packages, GitHub Actions, Docker) → nothing to do, already tracked via `.github/dependabot.yml`
+2. **Dependabot can't cover it?** (source-copied code, non-registry binaries, internal version pins) → create a custom update-check workflow using `.github/workflows/_template-update-check.yml.example`
+
+Before adding a new versioned dependency, verify which category it falls into. If category 2, the PR must include the update-check workflow.
+
+Current custom checks:
+- `shadcn-check.yml` — shadcn/ui source-copied components
+
 ## Code Standards
 
 - TypeScript 6+ (always latest)
