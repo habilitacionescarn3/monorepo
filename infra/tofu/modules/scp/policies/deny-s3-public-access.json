@@ -1,0 +1,46 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyDisablingAccountPublicAccessBlock",
+      "Effect": "Deny",
+      "Action": [
+        "s3:DeleteAccountPublicAccessBlock",
+        "s3:PutAccountPublicAccessBlock"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyBucketPublicAccessBlockRelaxation",
+      "Effect": "Deny",
+      "Action": [
+        "s3:PutBucketPublicAccessBlock",
+        "s3:DeleteBucketPublicAccessBlock"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "Bool": {
+          "s3:PublicAccessBlockConfiguration/BlockPublicAcls": "false"
+        }
+      }
+    },
+    {
+      "Sid": "DenyPublicAclWrites",
+      "Effect": "Deny",
+      "Action": [
+        "s3:PutBucketAcl",
+        "s3:PutObjectAcl"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-acl": [
+            "public-read",
+            "public-read-write",
+            "authenticated-read"
+          ]
+        }
+      }
+    }
+  ]
+}

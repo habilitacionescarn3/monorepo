@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyShortKMSDeletionWindow",
+      "Effect": "Deny",
+      "Action": "kms:ScheduleKeyDeletion",
+      "Resource": "*",
+      "Condition": {
+        "NumericLessThan": {
+          "kms:ScheduleKeyDeletionPendingWindowInDays": "${min_window}"
+        }
+      }
+    }
+  ]
+}

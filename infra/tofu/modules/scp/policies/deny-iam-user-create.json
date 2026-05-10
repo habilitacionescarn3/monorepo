@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyIAMUserAndKeyCreate",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateUser",
+        "iam:CreateAccessKey",
+        "iam:CreateLoginProfile",
+        "iam:UpdateLoginProfile",
+        "iam:UploadServerCertificate",
+        "iam:CreateServiceSpecificCredential",
+        "iam:ResetServiceSpecificCredential"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
