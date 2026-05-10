@@ -13,3 +13,9 @@ variable "environment" {
   type        = string
   description = "Logical environment label for tagging (e.g. platform)."
 }
+
+variable "governed_regions" {
+  type        = list(string)
+  default     = ["eu-central-1", "eu-west-1", "us-east-1"]
+  description = "Regions allowed by DenyNonEURegions. us-east-1 only for CloudFront/IAM/Route53 endpoints; data-residency stays EU because regional services are denied outside eu-*."
+}

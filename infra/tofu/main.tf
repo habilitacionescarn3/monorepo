@@ -29,12 +29,21 @@ provider "aws" {
   }
 }
 
+data "aws_organizations_organization" "current" {}
+
+locals {
+  root_id = data.aws_organizations_organization.current.roots[0].id
+}
+
 module "ou" {
-  source = "./modules/ou"
+  source  = "./modules/ou"
+  root_id = local.root_id
 }
 
 module "scp" {
-  source = "./modules/scp"
+  source           = "./modules/scp"
+  root_id          = local.root_id
+  governed_regions = var.governed_regions
 }
 
 module "identity_center" {
