@@ -30,6 +30,10 @@ dist
 
 # Debug
 npm-debug.log*
+debug-storybook.log
+
+# Storybook
+storybook-static
 
 # Misc
 .DS_Store
