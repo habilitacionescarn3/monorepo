@@ -153,27 +153,55 @@ import { ComboboxDemo } from "./_components/combobox-demo"
 import { CommandDemo } from "./_components/command-demo"
 import { CalendarDemo } from "./_components/calendar-demo"
 import { CarouselDemo } from "./_components/carousel-demo"
+import {
+  ChartAreaGradient,
+  ChartAreaSolid,
+  ChartAreaStacked,
+  ChartAreaDashed,
+  ChartColumn,
+  ChartColumnStacked,
+  ChartColumnGradient,
+  ChartBarHorizontal,
+  ChartLineDefault,
+  ChartLineWithDots,
+  ChartLineDashed,
+  ChartLineStepped,
+  ChartComposedBarLine,
+  ChartComposedAreaBar,
+  ChartPie,
+  ChartDonut,
+  ChartRadarFilled,
+  ChartRadarLines,
+} from "./_components/chart-demo"
 import { ToggleDemo } from "./_components/toggle-demo"
 import { ToggleGroupDemo } from "./_components/toggle-group-demo"
 import { SonnerDemo } from "./_components/sonner-demo"
 import { ActionBarDemo } from "./_components/action-bar-demo"
 import { Swap, SwapOff, SwapOn } from "@workspace/ui/components/swap"
-import {
-  MoonIcon,
-  SunIcon,
-  Volume2Icon,
-  VolumeOffIcon,
-  ChevronRight as ChevronRightIcon,
-  Sparkles,
-  Zap,
-} from "lucide-react"
-import { AnimatedShinyButton } from "@workspace/ui/components/animated-shiny-button"
-import {
-  BorderBeamButton,
-  BorderBeamIconButton,
-} from "@workspace/ui/components/border-beam-button"
+import { MoonIcon, SunIcon, Volume2Icon, VolumeOffIcon } from "lucide-react"
+import { BorderBeamDemo } from "./_components/border-beam-demo"
 import { LiquidMetalDemo } from "./_components/liquid-metal-demo"
 import { StatefulButtonDemo } from "./_components/stateful-button-demo"
+import { ApiResponseViewerDemo } from "./_components/api-response-viewer-demo"
+import { EnvEditorDemo } from "./_components/env-editor-demo"
+import { ErrorBoundaryUiDemo } from "./_components/error-boundary-ui-demo"
+import { JsonViewerDemo } from "./_components/json-viewer-demo"
+import { WebhookTesterDemo } from "./_components/webhook-tester-demo"
+import { BrowserDemo } from "./_components/browser-demo"
+import { CardExtendedDemo } from "./_components/card-extended-demo"
+import { CommitGraphDemo } from "./_components/commit-graph-demo"
+import { GaugeDemo } from "./_components/gauge-demo"
+import { KeyValueDemo } from "./_components/key-value-demo"
+import { QRCodeDemo } from "./_components/qr-code-demo"
+import { ColorSwatch } from "@workspace/ui/components/color-swatch"
+import { BannerDemo } from "./_components/banner-demo"
+import { CircularProgressDemo } from "./_components/circular-progress-demo"
+import { MarqueeDemo } from "./_components/marquee-demo"
+import { MultiStepLoaderDemo } from "./_components/multi-step-loader-demo"
+import { NoiseBackgroundDemo } from "./_components/noise-background-demo"
+import { RingLoaderDemo } from "./_components/ring-loader-demo"
+import { SnailTimerDemo } from "./_components/snail-timer-demo"
+import { TimelineDemo } from "./_components/timeline-demo"
 
 export default function ShowcasePage() {
   return (
@@ -231,39 +259,6 @@ export default function ShowcasePage() {
         </div>
       </section>
 
-      {/* ==================== ANIMATEDSHINYBUTTON ==================== */}
-      <section className="mb-16">
-        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
-          AnimatedShinyButton
-        </h2>
-        <div className="flex flex-col gap-6">
-          <div>
-            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-              Default
-            </h3>
-            <div className="flex flex-wrap items-center gap-4">
-              <AnimatedShinyButton>Get Started</AnimatedShinyButton>
-              <AnimatedShinyButton>
-                <Sparkles className="size-4" />
-                Explore
-              </AnimatedShinyButton>
-              <AnimatedShinyButton>
-                Learn More
-                <ChevronRightIcon className="size-4 transition-transform group-hover:translate-x-1" />
-              </AnimatedShinyButton>
-            </div>
-          </div>
-          <div>
-            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-              Custom highlight
-            </h3>
-            <AnimatedShinyButton highlightColor="var(--destructive)">
-              Custom Color
-            </AnimatedShinyButton>
-          </div>
-        </div>
-      </section>
-
       {/* ==================== ALERT ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Alert</h2>
@@ -305,6 +300,21 @@ export default function ShowcasePage() {
             <div className="flex flex-wrap gap-3">
               <AlertDialogDemo />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== APIRESPONSEVIEWER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          ApiResponseViewer
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Success + error responses with body, headers, timing tabs
+            </h3>
+            <ApiResponseViewerDemo />
           </div>
         </div>
       </section>
@@ -421,6 +431,19 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== BANNER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Banner</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Variants with actions
+            </h3>
+            <BannerDemo />
+          </div>
+        </div>
+      </section>
+
       {/* ==================== BREADCRUMB ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
@@ -450,25 +473,30 @@ export default function ShowcasePage() {
         </div>
       </section>
 
-      {/* ==================== BORDERBEAMBUTTON ==================== */}
+      {/* ==================== BROWSER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Browser</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Chrome with tabs + bookmarks bar
+            </h3>
+            <BrowserDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== BUTTONBORDERBEAM ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
-          BorderBeamButton
+          ButtonBorderBeam
         </h2>
         <div className="flex flex-col gap-6">
           <div>
             <h3 className="mb-3 text-sm font-medium text-muted-foreground">
               Variants
             </h3>
-            <div className="flex flex-wrap items-center gap-4">
-              <BorderBeamButton>Default</BorderBeamButton>
-              <BorderBeamButton variant="outline">Outline</BorderBeamButton>
-              <BorderBeamButton variant="secondary">Secondary</BorderBeamButton>
-              <BorderBeamButton variant="destructive">Delete</BorderBeamButton>
-              <BorderBeamIconButton aria-label="Zap">
-                <Zap />
-              </BorderBeamIconButton>
-            </div>
+            <BorderBeamDemo />
           </div>
         </div>
       </section>
@@ -644,6 +672,21 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== CARDEXTENDED ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          CardExtended
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              6 decorative variants of base Card
+            </h3>
+            <CardExtendedDemo />
+          </div>
+        </div>
+      </section>
+
       {/* ==================== CAROUSEL ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Carousel</h2>
@@ -653,6 +696,136 @@ export default function ShowcasePage() {
               4 slides with prev/next
             </h3>
             <CarouselDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== CHART ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Chart</h2>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Area — Gradient
+            </h3>
+            <ChartAreaGradient />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Area — Solid
+            </h3>
+            <ChartAreaSolid />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Area — Stacked
+            </h3>
+            <ChartAreaStacked />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Area — Dashed stroke
+            </h3>
+            <ChartAreaDashed />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Column
+            </h3>
+            <ChartColumn />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Column — Stacked
+            </h3>
+            <ChartColumnStacked />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Column — Gradient
+            </h3>
+            <ChartColumnGradient />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Bar — Horizontal
+            </h3>
+            <ChartBarHorizontal />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Line — Default
+            </h3>
+            <ChartLineDefault />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Line — With dots
+            </h3>
+            <ChartLineWithDots />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Line — Dashed
+            </h3>
+            <ChartLineDashed />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Line — Stepped
+            </h3>
+            <ChartLineStepped />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Composed — Bar + Line
+            </h3>
+            <ChartComposedBarLine />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Composed — Area + Bar
+            </h3>
+            <ChartComposedAreaBar />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Pie
+            </h3>
+            <ChartPie />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Donut
+            </h3>
+            <ChartDonut />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Radar — Filled
+            </h3>
+            <ChartRadarFilled />
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Radar — Lines
+            </h3>
+            <ChartRadarLines />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== CIRCULARPROGRESS ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          CircularProgress
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Loading, complete, indeterminate, custom color
+            </h3>
+            <CircularProgressDemo />
           </div>
         </div>
       </section>
@@ -685,6 +858,44 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== COLORSWATCH ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          ColorSwatch
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Token colors with sizes
+            </h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <ColorSwatch color="var(--primary)" />
+              <ColorSwatch color="var(--success)" />
+              <ColorSwatch color="var(--warning)" />
+              <ColorSwatch color="var(--info)" />
+              <ColorSwatch color="var(--destructive)" />
+              <ColorSwatch color="var(--chart-1)" />
+              <ColorSwatch color="var(--chart-2)" />
+              <ColorSwatch color="var(--chart-3)" />
+              <ColorSwatch color="var(--chart-4)" />
+              <ColorSwatch color="var(--chart-5)" />
+              <ColorSwatch color="rgba(255,0,0,0.5)" />
+              <ColorSwatch />
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Sizes
+            </h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <ColorSwatch color="var(--primary)" size="sm" />
+              <ColorSwatch color="var(--primary)" />
+              <ColorSwatch color="var(--primary)" size="lg" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ==================== COMBOBOX ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Combobox</h2>
@@ -707,6 +918,21 @@ export default function ShowcasePage() {
               Command palette with groups
             </h3>
             <CommandDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== COMMITGRAPH ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          CommitGraph
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Branched topology with merge + tag
+            </h3>
+            <CommitGraphDemo />
           </div>
         </div>
       </section>
@@ -801,6 +1027,34 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== ENVEDITOR ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">EnvEditor</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Masked values with import/export
+            </h3>
+            <EnvEditorDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== ERRORBOUNDARYUI ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          ErrorBoundaryUi
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Dev mode with stack trace and component stack
+            </h3>
+            <ErrorBoundaryUiDemo />
+          </div>
+        </div>
+      </section>
+
       {/* ==================== FIELD ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Field</h2>
@@ -835,6 +1089,19 @@ export default function ShowcasePage() {
                 <FieldError>Please enter a valid email address.</FieldError>
               </Field>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== GAUGE ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Gauge</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              SVG meter with full circle, semi, custom token, and indeterminate
+            </h3>
+            <GaugeDemo />
           </div>
         </div>
       </section>
@@ -987,6 +1254,21 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== JSONVIEWER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          JsonViewer
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Tree view, syntax via chart tokens, optional search
+            </h3>
+            <JsonViewerDemo />
+          </div>
+        </div>
+      </section>
+
       {/* ==================== KBD ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Kbd</h2>
@@ -1028,6 +1310,19 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== KEYVALUE ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">KeyValue</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Generic key/value editor with paste-parsing
+            </h3>
+            <KeyValueDemo />
+          </div>
+        </div>
+      </section>
+
       {/* ==================== LABEL ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Label</h2>
@@ -1045,10 +1340,10 @@ export default function ShowcasePage() {
         </div>
       </section>
 
-      {/* ==================== LIQUIDMETALBUTTON ==================== */}
+      {/* ==================== BUTTONLIQUIDMETAL ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
-          LiquidMetalButton
+          ButtonLiquidMetal
         </h2>
         <div className="flex flex-col gap-6">
           <div>
@@ -1056,6 +1351,19 @@ export default function ShowcasePage() {
               Text and icon modes
             </h3>
             <LiquidMetalDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== MARQUEE ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Marquee</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Pause on hover, reverse, custom speed
+            </h3>
+            <MarqueeDemo />
           </div>
         </div>
       </section>
@@ -1116,6 +1424,21 @@ export default function ShowcasePage() {
                 </MenubarContent>
               </MenubarMenu>
             </Menubar>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== MULTISTEPLOADER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          MultiStepLoader
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Full-screen overlay with check-icon sequence
+            </h3>
+            <MultiStepLoaderDemo />
           </div>
         </div>
       </section>
@@ -1191,6 +1514,21 @@ export default function ShowcasePage() {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== NOISEBACKGROUND ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          NoiseBackground
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Animated gradients with SVG noise overlay
+            </h3>
+            <NoiseBackgroundDemo />
           </div>
         </div>
       </section>
@@ -1278,6 +1616,19 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== QRCODE ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">QRCode</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Canvas + SVG output, download, overlay logo
+            </h3>
+            <QRCodeDemo />
+          </div>
+        </div>
+      </section>
+
       {/* ==================== RADIOGROUP ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
@@ -1302,6 +1653,21 @@ export default function ShowcasePage() {
               Two-panel horizontal layout
             </h3>
             <ResizableDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== RINGLOADER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          RingLoader
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Sizes, colors, custom --duration
+            </h3>
+            <RingLoaderDemo />
           </div>
         </div>
       </section>
@@ -1432,6 +1798,21 @@ export default function ShowcasePage() {
               Values
             </h3>
             <SliderDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== SNAILTIMER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          SnailTimer
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              30-second countdown with token-themed SVG snail
+            </h3>
+            <SnailTimerDemo />
           </div>
         </div>
       </section>
@@ -1706,6 +2087,19 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      {/* ==================== TIMELINE ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Timeline</h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Vertical timeline with active step
+            </h3>
+            <TimelineDemo />
+          </div>
+        </div>
+      </section>
+
       {/* ==================== TOGGLE ==================== */}
       <section className="mb-16">
         <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">Toggle</h2>
@@ -1745,6 +2139,21 @@ export default function ShowcasePage() {
             <div className="flex flex-wrap gap-3">
               <TooltipDemo />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== WEBHOOKTESTER ==================== */}
+      <section className="mb-16">
+        <h2 className="mb-6 border-b pb-2 text-2xl font-semibold">
+          WebhookTester
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Mock onSend handler (no real network)
+            </h3>
+            <WebhookTesterDemo />
           </div>
         </div>
       </section>

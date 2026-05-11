@@ -26,6 +26,14 @@
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-purple: var(--purple);
+    --color-purple-foreground: var(--purple-foreground);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
@@ -66,6 +74,14 @@
     --accent: #f5f5f5;
     --accent-foreground: #171717;
     --destructive: #ef4444;
+    --success: #16a34a;
+    --success-foreground: #ffffff;
+    --warning: #d97706;
+    --warning-foreground: #ffffff;
+    --info: #2563eb;
+    --info-foreground: #ffffff;
+    --purple: #7c3aed;
+    --purple-foreground: #ffffff;
     --border: #e5e5e5;
     --input: #e5e5e5;
     --ring: #a3a3a3;
@@ -101,6 +117,14 @@
     --accent: #262626;
     --accent-foreground: #fafafa;
     --destructive: #dc2626;
+    --success: #4ade80;
+    --success-foreground: #052e16;
+    --warning: #fbbf24;
+    --warning-foreground: #422006;
+    --info: #60a5fa;
+    --info-foreground: #0c1f3d;
+    --purple: #a78bfa;
+    --purple-foreground: #1f1147;
     --border: rgba(255, 255, 255, 0.1);
     --input: rgba(255, 255, 255, 0.15);
     --ring: #737373;
@@ -235,24 +259,6 @@
     --sidebar-ring: #22c55e;
 }
 
-@property --shiny-gradient-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
-@keyframes shiny-gradient-spin {
-  to {
-    --shiny-gradient-angle: 360deg;
-  }
-}
-
-@keyframes shiny-shimmer {
-  to {
-    rotate: 360deg;
-  }
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -260,4 +266,23 @@
   body {
     @apply bg-background text-foreground;
     }
+}
+
+@theme {
+  --animate-marquee: marquee var(--duration, 40s) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration, 40s) linear infinite;
+  --animate-spin-around: spin-around 1.5s linear infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+  }
+  @keyframes marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% - var(--gap, 1rem))); }
+  }
+  @keyframes spin-around {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 }

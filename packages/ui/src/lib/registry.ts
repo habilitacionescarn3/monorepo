@@ -18,14 +18,6 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Vertically stacked expandable sections",
     categories: ["disclosure"],
   },
-  "animated-shiny-button": {
-    source: "eldoraui",
-    sourceType: "import",
-    upstream: "https://www.eldoraui.site/docs/components/animated-shiny-button",
-    description:
-      "Button with animated conic-gradient border, shimmer, and glow on hover",
-    categories: ["actions", "effects"],
-  },
   "action-bar": {
     source: "diceui",
     sourceType: "import",
@@ -42,6 +34,15 @@ export const registry: Record<string, ComponentMeta> = {
     description:
       "Semantic alert container with default and destructive variants",
     categories: ["feedback"],
+  },
+  "api-response-viewer": {
+    source: "tryelements",
+    sourceType: "import",
+    upstream: "https://www.tryelements.dev/docs/devtools/api-response-viewer",
+    description:
+      "Tabbed HTTP response inspector with semantic status badge, JSON body, headers table, and timing waterfall",
+    categories: ["data", "display"],
+    dependencies: ["button", "json-viewer", "tabs"],
   },
   "alert-dialog": {
     source: "shadcn",
@@ -74,6 +75,15 @@ export const registry: Record<string, ComponentMeta> = {
       "Small label with default, secondary, outline, and destructive variants",
     categories: ["display"],
   },
+  banner: {
+    source: "diceui",
+    sourceType: "import",
+    upstream: "https://www.diceui.com/docs/components/radix/banner",
+    description:
+      "Dismissible notification banner with info/success/warning/destructive variants and optional queue manager",
+    categories: ["feedback"],
+    dependencies: ["button"],
+  },
   breadcrumb: {
     source: "shadcn",
     sourceType: "vanilla",
@@ -81,7 +91,16 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Navigation breadcrumb trail with separators",
     categories: ["navigation"],
   },
-  "border-beam-button": {
+  browser: {
+    source: "eldoraui",
+    sourceType: "import",
+    upstream: "https://www.eldoraui.site/docs/components/browser",
+    description:
+      "Browser simulator chrome with address bar, tabs, bookmarks, history, downloads, and settings",
+    categories: ["display"],
+    dependencies: ["badge", "button", "card", "input", "separator"],
+  },
+  "button-border-beam": {
     source: "cult-ui",
     sourceType: "import",
     upstream: "https://www.cult-ui.com/docs/components/border-beam-button",
@@ -105,6 +124,16 @@ export const registry: Record<string, ComponentMeta> = {
     categories: ["actions", "layout"],
     dependencies: ["separator"],
   },
+  "button-liquid-metal": {
+    source: "jolyui",
+    sourceType: "import",
+    upstream:
+      "https://www.jolyui.dev/docs/components/buttons/liquid-metal-button",
+    description:
+      "WebGL shader-powered button with 3D metallic liquid animation and ripple effects",
+    categories: ["actions", "effects"],
+    packages: ["@paper-design/shaders"],
+  },
   calendar: {
     source: "shadcn",
     sourceType: "vanilla",
@@ -122,6 +151,15 @@ export const registry: Record<string, ComponentMeta> = {
       "Container for grouped content with header, content, and footer",
     categories: ["layout"],
   },
+  "card-extended": {
+    source: "cardcn",
+    sourceType: "import",
+    upstream: "https://cardcn.dev/cards/basic-cards/",
+    description:
+      "Card with decorative variants: shadow, lines, hatched, aurora, tilted, stacked",
+    categories: ["display", "layout"],
+    dependencies: ["card"],
+  },
   carousel: {
     source: "shadcn",
     sourceType: "vanilla",
@@ -131,11 +169,20 @@ export const registry: Record<string, ComponentMeta> = {
     dependencies: ["button"],
     packages: ["embla-carousel-react"],
   },
+  "circular-progress": {
+    source: "diceui",
+    sourceType: "import",
+    upstream: "https://www.diceui.com/docs/components/radix/circular-progress",
+    description:
+      "SVG circular progress indicator with track + range, indeterminate state, configurable size and thickness",
+    categories: ["feedback", "display"],
+  },
   chart: {
-    source: "shadcn",
-    sourceType: "vanilla",
+    source: "shadcn+evilcharts",
+    sourceType: "custom",
     upstream: "https://ui.shadcn.com/docs/components/chart",
-    description: "Data visualization wrapper for recharts",
+    description:
+      "Unified chart component with area, bar/column, line, composed, pie, donut, and radar types. ChartContainer/Tooltip/Legend exported for custom recharts compositions.",
     categories: ["data"],
     packages: ["recharts"],
   },
@@ -152,6 +199,22 @@ export const registry: Record<string, ComponentMeta> = {
     upstream: "https://ui.shadcn.com/docs/components/collapsible",
     description: "Expandable and collapsible content section",
     categories: ["disclosure"],
+  },
+  "color-swatch": {
+    source: "diceui",
+    sourceType: "import",
+    upstream: "https://www.diceui.com/docs/components/radix/color-swatch",
+    description:
+      "Color preview swatch with sm/default/lg sizes, transparency checker, and asChild support",
+    categories: ["display"],
+  },
+  "commit-graph": {
+    source: "justinlevine",
+    sourceType: "import",
+    upstream: "https://ui.justinlevine.me/docs/components/commit-graph",
+    description:
+      "Topological git graph with SVG rail lines, branch forks, merges, and commit popovers",
+    categories: ["display", "data"],
   },
   combobox: {
     source: "shadcn",
@@ -224,6 +287,24 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Empty state display with icon, title, and description",
     categories: ["feedback"],
   },
+  "env-editor": {
+    source: "tryelements",
+    sourceType: "import",
+    upstream: "https://www.tryelements.dev/docs/devtools/env-editor",
+    description:
+      "Key-value editor for environment variables with masked values, add/remove rows, and .env import/export",
+    categories: ["forms", "data"],
+    dependencies: ["button", "input"],
+  },
+  "error-boundary-ui": {
+    source: "tryelements",
+    sourceType: "import",
+    upstream: "https://www.tryelements.dev/docs/devtools/error-boundary-ui",
+    description:
+      "Error fallback display with stack trace parsing, copy-to-clipboard, retry, and dev/prod verbosity modes",
+    categories: ["feedback"],
+    dependencies: ["button"],
+  },
   field: {
     source: "shadcn",
     sourceType: "vanilla",
@@ -232,6 +313,14 @@ export const registry: Record<string, ComponentMeta> = {
       "Form field wrapper with label, description, and error message",
     categories: ["forms"],
     dependencies: ["label", "separator"],
+  },
+  gauge: {
+    source: "diceui",
+    sourceType: "import",
+    upstream: "https://www.diceui.com/docs/components/radix/gauge",
+    description:
+      "SVG gauge/meter with configurable min/max, thickness, start/end angles, and value text",
+    categories: ["display", "feedback"],
   },
   "hover-card": {
     source: "shadcn",
@@ -271,6 +360,15 @@ export const registry: Record<string, ComponentMeta> = {
     categories: ["display", "layout"],
     dependencies: ["separator"],
   },
+  "json-viewer": {
+    source: "tryelements",
+    sourceType: "import",
+    upstream: "https://www.tryelements.dev/docs/devtools/json-viewer",
+    description:
+      "Collapsible JSON tree with chart-token syntax highlighting, search filter, and copy-path-on-hover",
+    categories: ["data", "display"],
+    dependencies: ["button", "input"],
+  },
   kbd: {
     source: "shadcn",
     sourceType: "vanilla",
@@ -278,22 +376,47 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Keyboard key display for shortcuts",
     categories: ["display"],
   },
+  "key-value": {
+    source: "diceui",
+    sourceType: "import",
+    upstream: "https://www.diceui.com/docs/components/radix/key-value",
+    description:
+      "Generic editable key-value pair input with paste-parsing, validation, duplicate detection, and reorder",
+    categories: ["display", "forms"],
+    dependencies: ["button", "input", "textarea"],
+  },
+  marquee: {
+    source: "magicui",
+    sourceType: "import",
+    upstream: "https://magicui.design/docs/components/marquee",
+    description:
+      "Horizontal or vertical scrolling marquee with pause-on-hover, reverse, and configurable speed",
+    categories: ["effects"],
+  },
+  "multi-step-loader": {
+    source: "aceternity",
+    sourceType: "import",
+    upstream: "https://ui.aceternity.com/components/multi-step-loader",
+    description:
+      "Full-screen overlay that cycles through ordered loading states with check animations",
+    categories: ["feedback", "effects"],
+    packages: ["motion"],
+  },
+  "noise-background": {
+    source: "aceternity",
+    sourceType: "import",
+    upstream: "https://ui.aceternity.com/components/noise-background",
+    description:
+      "Animated gradient backdrop with SVG turbulence noise overlay, semantic-token defaults, optional backdrop blur",
+    categories: ["effects", "display"],
+    packages: ["motion"],
+  },
   label: {
     source: "shadcn",
     sourceType: "vanilla",
     upstream: "https://ui.shadcn.com/docs/components/label",
     description: "Form label element",
     categories: ["forms"],
-  },
-  "liquid-metal-button": {
-    source: "jolyui",
-    sourceType: "import",
-    upstream:
-      "https://www.jolyui.dev/docs/components/buttons/liquid-metal-button",
-    description:
-      "WebGL shader-powered button with 3D metallic liquid animation and ripple effects",
-    categories: ["actions", "effects"],
-    packages: ["@paper-design/shaders"],
   },
   menubar: {
     source: "shadcn",
@@ -338,6 +461,15 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Linear progress bar indicator",
     categories: ["feedback"],
   },
+  "qr-code": {
+    source: "diceui",
+    sourceType: "import",
+    upstream: "https://www.diceui.com/docs/components/radix/qr-code",
+    description:
+      "QR code generator with configurable size, error correction level, optional logo overlay, and PNG/SVG download",
+    categories: ["display"],
+    packages: ["qrcode"],
+  },
   "radio-group": {
     source: "shadcn",
     sourceType: "vanilla",
@@ -352,6 +484,14 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Resizable panel layout with drag handles",
     categories: ["layout"],
     packages: ["react-resizable-panels"],
+  },
+  "ring-loader": {
+    source: "loading-ui",
+    sourceType: "import",
+    upstream: "https://loading-ui.com",
+    description:
+      "Lightweight SVG spinning ring indicator with currentColor and --duration override",
+    categories: ["feedback"],
   },
   "scroll-area": {
     source: "shadcn",
@@ -412,6 +552,14 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Range slider with draggable thumb",
     categories: ["forms"],
   },
+  "snail-timer": {
+    source: "uicapsule",
+    sourceType: "import",
+    upstream: "https://www.uicapsule.com",
+    description:
+      "Animated countdown timer with a token-themed snail traversing the container, configurable initial seconds",
+    categories: ["feedback"],
+  },
   sonner: {
     source: "shadcn",
     sourceType: "vanilla",
@@ -471,6 +619,14 @@ export const registry: Record<string, ComponentMeta> = {
     description: "Multi-line text input field",
     categories: ["forms"],
   },
+  timeline: {
+    source: "diceui",
+    sourceType: "import",
+    upstream: "https://www.diceui.com/docs/components/radix/timeline",
+    description:
+      "Vertical/horizontal timeline with active step tracking, connector lines, dot status, and optional alternate layout",
+    categories: ["display"],
+  },
   toggle: {
     source: "shadcn",
     sourceType: "vanilla",
@@ -492,6 +648,15 @@ export const registry: Record<string, ComponentMeta> = {
     upstream: "https://ui.shadcn.com/docs/components/tooltip",
     description: "Hover tooltip with text content",
     categories: ["overlay"],
+  },
+  "webhook-tester": {
+    source: "tryelements",
+    sourceType: "import",
+    upstream: "https://www.tryelements.dev/docs/devtools/webhook-tester",
+    description:
+      "HTTP request builder with method selector, header editor, JSON body, and semantic-colored response. Requires caller-supplied onSend handler (no built-in fetch).",
+    categories: ["forms", "data"],
+    dependencies: ["button", "input", "native-select", "textarea"],
   },
 }
 
