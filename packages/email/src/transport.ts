@@ -155,6 +155,14 @@ function pickTransport(): EmailTransport {
     }
     return new SesTransport(region)
   }
+  // No explicit override. In dev (NODE_ENV !== 'production') always
+  // default to the console transport — local AWS creds / RESEND_API_KEY
+  // leaking from the shell shouldn't accidentally fire real email from
+  // a developer's laptop, and the dev outbox at /api/dev/outbox is the
+  // intended observability surface. Set EMAIL_TRANSPORT=ses|resend to
+  // exercise a real backend locally when you actually want delivery.
+  if (process.env.NODE_ENV !== "production") return new ConsoleTransport()
+
   const resendKey = process.env.RESEND_API_KEY
   if (resendKey) return new ResendTransport(resendKey)
   const region = process.env.AWS_REGION
