@@ -3,53 +3,52 @@ import { and, eq } from "drizzle-orm"
 import { withAdminBypass } from "@workspace/db"
 import { app_user, workspace, workspace_membership } from "@workspace/db/schema"
 
+import { decideNextStep, stepPath, type StepKey } from "@workspace/shared/auth"
+
+import { readActiveWorkspaceCookie } from "./active-workspace-cookie"
 import { readOnboardingState } from "./state-cookie"
 
-export type StepKey =
-  | "profile"
-  | "experience"
-  | "password"
-  | "workspace"
-  | "plan"
-  | "team"
-  | "done"
-
-export const STEP_ORDER: readonly StepKey[] = [
-  "profile",
-  "experience",
-  "password",
-  "workspace",
-  "plan",
-  "team",
-  "done",
-] as const
-
-export const TOTAL_STEPS = STEP_ORDER.length
-
-export function stepIndex(step: StepKey): number {
-  return STEP_ORDER.indexOf(step) + 1
-}
-
-export function stepPath(step: StepKey): string {
-  return `/onboarding/${step}`
-}
+export {
+  decideNextStep,
+  stepIndex,
+  stepPath,
+  STEP_ORDER,
+  TOTAL_STEPS,
+  type StepKey,
+} from "@workspace/shared/auth"
 
 /**
- * Compute the next-incomplete step for a user, given:
- *   - the onboarding-state cookie (steps 1-2 before BA user exists),
- *   - the app_user row (profile_completed_at, experience),
- *   - the user's owner workspace row (step_*_completed_at timestamps).
+ * Compute the next-incomplete step for a user.
  *
- * Caller MUST pass `userId` when a Better Auth session exists; pass
- * `null` for pre-account-creation visitors (steps 1-2 walk the cookie).
+ * Wraps the pure `decideNextStep` resolver with a DB + cookie snapshot:
+ *   - the onboarding-state cookie (steps 1-2 before BA user exists)
+ *   - the app_user row (profile_completed_at, experience)
+ *   - the user's owner workspace row (step_*_completed_at)
+ *
+ * The owner workspace lookup is preceded by a check of the
+ * `app-active-workspace` cookie. The cookie is set after step 4
+ * succeeds, so once it's present, the resolver targets THAT workspace
+ * directly instead of "first owner workspace ordered by created_at"
+ * (which is wrong for multi-workspace owners).
  */
 export async function resolveNextStep(userId: string | null): Promise<StepKey> {
   if (!userId) {
     const state = await readOnboardingState()
-    if (!state.profile) return "profile"
-    if (!state.experience) return "experience"
-    return "password"
+    return decideNextStep({
+      hasSession: false,
+      cookieHasProfile: !!state.profile,
+      cookieHasExperience: !!state.experience,
+      profileCompletedAt: null,
+      experience: null,
+      workspaceExists: false,
+      step1CompletedAt: null,
+      step2CompletedAt: null,
+      step3CompletedAt: null,
+      step4CompletedAt: null,
+    })
   }
+
+  const activeWorkspaceId = await readActiveWorkspaceCookie()
 
   return await withAdminBypass(async (db) => {
     const userRow = (
@@ -63,53 +62,87 @@ export async function resolveNextStep(userId: string | null): Promise<StepKey> {
         .limit(1)
     )[0]
 
-    if (!userRow) return "profile"
-    if (!userRow.profileCompletedAt) return "profile"
-    if (!userRow.experience) return "experience"
+    let wsRow:
+      | {
+          step1: Date | null
+          step2: Date | null
+          step3: Date | null
+          step4: Date | null
+        }
+      | undefined
 
-    const wsRow = (
-      await db
-        .select({
-          step1: workspace.step_1_completed_at,
-          step2: workspace.step_2_completed_at,
-          step3: workspace.step_3_completed_at,
-          step4: workspace.step_4_completed_at,
-        })
-        .from(workspace)
-        .innerJoin(
-          workspace_membership,
-          eq(workspace_membership.workspace_id, workspace.id),
-        )
-        .where(
-          and(
-            eq(workspace_membership.user_id, userId),
-            eq(workspace_membership.role, "owner"),
-            eq(workspace_membership.active, true),
-          ),
-        )
-        .orderBy(workspace.created_at)
-        .limit(1)
-    )[0]
+    if (activeWorkspaceId) {
+      const row = (
+        await db
+          .select({
+            step1: workspace.step_1_completed_at,
+            step2: workspace.step_2_completed_at,
+            step3: workspace.step_3_completed_at,
+            step4: workspace.step_4_completed_at,
+          })
+          .from(workspace)
+          .innerJoin(
+            workspace_membership,
+            eq(workspace_membership.workspace_id, workspace.id),
+          )
+          .where(
+            and(
+              eq(workspace.id, activeWorkspaceId),
+              eq(workspace_membership.user_id, userId),
+              eq(workspace_membership.role, "owner"),
+              eq(workspace_membership.active, true),
+            ),
+          )
+          .limit(1)
+      )[0]
+      if (row) wsRow = row
+    }
 
-    if (!wsRow) return "workspace"
-    if (!wsRow.step1) return "workspace"
-    if (!wsRow.step2) return "plan"
-    if (!wsRow.step3) return "team"
-    if (!wsRow.step4) return "done"
-    return "done"
+    if (!wsRow) {
+      wsRow = (
+        await db
+          .select({
+            step1: workspace.step_1_completed_at,
+            step2: workspace.step_2_completed_at,
+            step3: workspace.step_3_completed_at,
+            step4: workspace.step_4_completed_at,
+          })
+          .from(workspace)
+          .innerJoin(
+            workspace_membership,
+            eq(workspace_membership.workspace_id, workspace.id),
+          )
+          .where(
+            and(
+              eq(workspace_membership.user_id, userId),
+              eq(workspace_membership.role, "owner"),
+              eq(workspace_membership.active, true),
+            ),
+          )
+          .orderBy(workspace.created_at)
+          .limit(1)
+      )[0]
+    }
+
+    return decideNextStep({
+      hasSession: true,
+      cookieHasProfile: false,
+      cookieHasExperience: false,
+      profileCompletedAt: userRow?.profileCompletedAt ?? null,
+      experience: userRow?.experience ?? null,
+      workspaceExists: !!wsRow,
+      step1CompletedAt: wsRow?.step1 ?? null,
+      step2CompletedAt: wsRow?.step2 ?? null,
+      step3CompletedAt: wsRow?.step3 ?? null,
+      step4CompletedAt: wsRow?.step4 ?? null,
+    })
   })
 }
 
 /**
  * Server-side guard for owner-onboarding step pages 4-7. If the user is
  * not on their canonical "next" step (per `resolveNextStep`), redirect
- * them there. Prevents back-button refreshes from re-running mutations
- * (HI-8 in PHASE_REVIEW.md) and forces a stale browser tab back into
- * the right step.
- *
- * Done-page caveat: callers may want to allow the user to land on /done
- * even after onboarding completion (it just renders the success card and
- * routes to /workspace). Pass `allowOnDone: true` from that page.
+ * them there. Done-page can opt out with `allowOnDone: true`.
  */
 export async function assertOwnerOnStep(
   userId: string,
@@ -124,19 +157,47 @@ export async function assertOwnerOnStep(
 }
 
 /**
- * Looks up the owner workspace id for the given user. Filters strictly
- * by role='owner' + active=true so an invited member who has joined
- * another workspace doesn't shadow their own onboarding-in-progress
- * workspace.
+ * Look up the owner workspace id for the given user. Prefers the
+ * active-workspace cookie when set; falls back to "first owner
+ * workspace by created_at" otherwise. Used by post-step-3 actions
+ * that need to write to "the user's workspace" before the cookie is
+ * established (step 4 sets the cookie at the end of its action).
  */
 export async function findOwnerWorkspaceId(
   userId: string,
 ): Promise<string | null> {
+  const activeWorkspaceId = await readActiveWorkspaceCookie()
+  if (activeWorkspaceId) {
+    // Defense-in-depth: stale cookie shouldn't grant writes to a
+    // workspace the user no longer owns. Verify ownership before
+    // trusting the cookie's value.
+    const verified = await withAdminBypass(async (db) => {
+      const [row] = await db
+        .select({ id: workspace_membership.workspace_id })
+        .from(workspace_membership)
+        .where(
+          and(
+            eq(workspace_membership.workspace_id, activeWorkspaceId),
+            eq(workspace_membership.user_id, userId),
+            eq(workspace_membership.role, "owner"),
+            eq(workspace_membership.active, true),
+          ),
+        )
+        .limit(1)
+      return row?.id ?? null
+    })
+    if (verified) return verified
+  }
+
   return await withAdminBypass(async (db) => {
     const row = (
       await db
         .select({ workspaceId: workspace_membership.workspace_id })
         .from(workspace_membership)
+        .innerJoin(
+          workspace,
+          eq(workspace.id, workspace_membership.workspace_id),
+        )
         .where(
           and(
             eq(workspace_membership.user_id, userId),
@@ -144,6 +205,7 @@ export async function findOwnerWorkspaceId(
             eq(workspace_membership.active, true),
           ),
         )
+        .orderBy(workspace.created_at)
         .limit(1)
     )[0]
     return row?.workspaceId ?? null

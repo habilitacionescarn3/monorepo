@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@workspace/auth/server"
-import { verifyInviteToken, TokenError } from "@workspace/auth/tokens"
+import { readInviteByRawToken } from "@workspace/auth/invite-issuer"
 
 import { materializeInvite } from "../_lib/materialize-invite"
 
@@ -40,30 +40,34 @@ export interface InviteResult {
  */
 export async function acceptInviteAction(): Promise<InviteResult> {
   const cookieStore = await cookies()
-  const token = cookieStore.get(INVITE_TOKEN_COOKIE)?.value
-  if (!token) {
+  const rawToken = cookieStore.get(INVITE_TOKEN_COOKIE)?.value
+  if (!rawToken) {
     return { ok: false, error: "Invite session expired." }
   }
 
-  let claims
-  try {
-    claims = await verifyInviteToken(token)
-  } catch (err) {
+  const record = await readInviteByRawToken(rawToken)
+  if (!record) {
     cookieStore.delete(INVITE_TOKEN_COOKIE)
-    return {
-      ok: false,
-      error:
-        err instanceof TokenError
-          ? `Invite token ${err.code.toLowerCase()}.`
-          : "Invalid invite token.",
-    }
+    return { ok: false, error: "Invalid invite token." }
+  }
+  if (record.status === "expired") {
+    cookieStore.delete(INVITE_TOKEN_COOKIE)
+    return { ok: false, error: "Invite token expired." }
+  }
+  if (record.status === "revoked") {
+    cookieStore.delete(INVITE_TOKEN_COOKIE)
+    return { ok: false, error: "Invite token revoked." }
+  }
+  if (record.status === "accepted") {
+    cookieStore.delete(INVITE_TOKEN_COOKIE)
+    return { ok: false, error: "Invite token already accepted." }
   }
 
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
     return { ok: false, error: "Sign in first." }
   }
-  if (session.user.email.toLowerCase() !== claims.email.toLowerCase()) {
+  if (session.user.email.toLowerCase() !== record.email.toLowerCase()) {
     return {
       ok: false,
       error: "This invite is for a different email address.",
@@ -72,11 +76,11 @@ export async function acceptInviteAction(): Promise<InviteResult> {
 
   try {
     const slug = await materializeInvite({
-      organizationId: claims.organizationId,
-      role: claims.role,
+      organizationId: record.organizationId,
+      role: record.role,
       userId: session.user.id,
-      inviteJwt: token,
-      email: claims.email,
+      inviteRawToken: rawToken,
+      email: record.email,
     })
     cookieStore.delete(INVITE_TOKEN_COOKIE)
     return { ok: true, orgSlug: slug }

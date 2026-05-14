@@ -30,15 +30,15 @@ import {
  * Returns the organization slug so the caller can redirect to /[orgSlug].
  */
 export interface MaterializeInviteInput {
-  /** Organization the user is joining (from the invite token's claims). */
+  /** Organization the user is joining (from the invite record). */
   organizationId: string
   /** Organization role to assign on accept. */
   role: "owner" | "admin" | "member" | "agent" | "guest"
   /** Better Auth user id of the accepting user. */
   userId: string
-  /** Issued JWT (raw string) — hashed for the audit-trail token_hash. */
-  inviteJwt: string
-  /** Email recorded on the invite (from the JWT claims). */
+  /** Raw invite token from the URL/cookie — hashed for the DB lookup. */
+  inviteRawToken: string
+  /** Email recorded on the invite (from the auth_invite row). */
   email: string
 }
 
@@ -59,7 +59,7 @@ export type InviteAcceptErrorCode =
 export async function materializeInvite(
   input: MaterializeInviteInput,
 ): Promise<string> {
-  const tokenHash = sha256(input.inviteJwt)
+  const tokenHash = sha256(input.inviteRawToken)
 
   return await withAdminBypass(async (db) => {
     // Atomic check-and-set: only one accept can succeed per token.

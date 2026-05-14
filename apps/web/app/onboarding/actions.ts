@@ -28,6 +28,7 @@ import {
 } from "@workspace/shared/auth"
 
 import { issueInvite, revokePendingInvites } from "../auth/_lib/issue-invite"
+import { setActiveWorkspaceCookie } from "./_lib/active-workspace-cookie"
 import { findOwnerWorkspaceId } from "./_lib/resume"
 import { readSignupClaims, clearSignupCookie } from "./_lib/signup-cookie"
 import {
@@ -241,6 +242,7 @@ export async function submitWorkspaceAction(
     return { ok: false, errorKey: "sessionExpired" }
   }
 
+  let createdWorkspaceId: string | null = null
   try {
     await withAdminBypass(async (db) => {
       const [user] = await db
@@ -262,6 +264,7 @@ export async function submitWorkspaceAction(
         })
         .returning()
       if (!ws) throw new Error("workspace insert returned no row")
+      createdWorkspaceId = ws.id
       const [wsMembership] = await db
         .insert(workspace_membership)
         .values({
@@ -311,6 +314,13 @@ export async function submitWorkspaceAction(
   } catch (err) {
     console.error("[onboarding/workspace] create workspace failed", err)
     return { ok: false, errorKey: "createWorkspaceFailed" }
+  }
+
+  // Pin the new workspace as the active one so subsequent steps (and
+  // future writes) target it without re-deriving from `ORDER BY
+  // created_at LIMIT 1`. The cookie outlives the onboarding flow.
+  if (createdWorkspaceId) {
+    await setActiveWorkspaceCookie(createdWorkspaceId)
   }
 
   return { ok: true }

@@ -12,6 +12,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@workspace/auth": "workspace:*",
+    "@workspace/observability": "workspace:*",
     "bullmq": "^5.67.2",
     "ioredis": "^5.7.0"
   },

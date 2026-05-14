@@ -1,6 +1,6 @@
 "use server"
 
-import { cookies, headers } from "next/headers"
+import { headers } from "next/headers"
 import { eq } from "drizzle-orm"
 import { auth } from "@workspace/auth/server"
 import { withAdminBypass } from "@workspace/db"
@@ -13,9 +13,9 @@ import {
 import { materializeInvite } from "../../auth/_lib/materialize-invite"
 import { readOnboardingState, clearOnboardingState } from "../_lib/state-cookie"
 import {
-  INVITE_TOKEN_COOKIE,
   clearInviteCookie,
   readInviteClaims,
+  readRawInviteToken,
 } from "./_lib/invite-cookie"
 
 export interface MemberPasswordResult {
@@ -57,10 +57,9 @@ export async function submitMemberPasswordAction(
     return { ok: false, errorKey: "sessionExpired" }
   }
 
-  // Capture the raw JWT before the cookie is cleared — materializeInvite
-  // hashes it for the auth_invite audit-trail row.
-  const cookieStore = await cookies()
-  const inviteJwt = cookieStore.get(INVITE_TOKEN_COOKIE)?.value ?? ""
+  // Capture the raw invite token before the cookie is cleared —
+  // materializeInvite hashes it to flip the auth_invite row.
+  const rawInviteToken = (await readRawInviteToken()) ?? ""
 
   // Idempotency guard (CR-2). If a session is already active, the BA
   // user was created in a previous attempt — skip signUpEmail.
@@ -117,7 +116,7 @@ export async function submitMemberPasswordAction(
       organizationId: claims.organizationId,
       role: claims.role,
       userId,
-      inviteJwt,
+      inviteRawToken: rawInviteToken,
       email: claims.email,
     })
   } catch (err) {

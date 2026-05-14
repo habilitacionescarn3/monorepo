@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { withAdminBypass } from "@workspace/db"
 import {
   app_user,
@@ -9,28 +8,35 @@ import {
 } from "@workspace/db/schema"
 import { sendEmail, inviteEmail } from "@workspace/email"
 
-import { signInviteToken, type InviteClaims } from "./tokens/invite"
+import {
+  generateRawInviteToken,
+  hashInviteToken,
+  type InviteRecord,
+} from "./tokens/invite"
 
 /**
- * Issue a single invite: signs the JWT, writes the `auth_invite` row at
- * status='pending' (audit trail starts at issue time, not accept time),
- * and emails the recipient. Returns the URL so the caller can also
- * display / copy it (useful for the dev-CLI script and admin UIs).
+ * Issue a single invite: generates a 32-byte random token, writes the
+ * `auth_invite` row at status='pending' (the audit trail starts at
+ * issue time), and emails the recipient. Returns the URL so the caller
+ * can also display / copy it.
  *
  * Caller should `revokePendingInvites()` first when re-issuing for the
  * same (organization, email) — the unique constraint on `token_hash`
- * is not a substitute since each call mints a fresh JWT.
+ * does not dedupe across different tokens. Each call mints a fresh
+ * random token.
  */
 
 export const DEFAULT_INVITE_TTL_SECONDS = 60 * 60 * 24 * 7
 
+export type InviteRole = InviteRecord["role"]
+
 export interface IssueInviteInput {
   email: string
   organizationId: string
-  role: InviteClaims["role"]
+  role: InviteRole
   /** Issuing user (workspace owner / admin). Used for audit + email "from". */
   issuedByUserId: string | null
-  /** Base URL (e.g. http://localhost:3000) — the link is base + /auth/invite/start?token=... */
+  /** Base URL (e.g. http://localhost:3000) — link is base + /auth/invite/start?token=... */
   baseUrl: string
   /** Localized brand name (resolved by caller via i18n). */
   brandName: string
@@ -50,20 +56,13 @@ export async function issueInvite(
   const ttlSeconds = input.ttlSeconds ?? DEFAULT_INVITE_TTL_SECONDS
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000)
 
-  const token = await signInviteToken(
-    {
-      email: input.email,
-      organizationId: input.organizationId,
-      role: input.role,
-    },
-    ttlSeconds,
-  )
-  const tokenHash = sha256(token)
-  const url = `${input.baseUrl}/auth/invite/start?token=${encodeURIComponent(token)}`
+  // Mint a fresh random token and hash it once. The raw token is
+  // returned in the URL + cookie + email body. Only the hash is
+  // persisted, so a DB leak doesn't expose a forgeable invite.
+  const rawToken = generateRawInviteToken()
+  const tokenHash = hashInviteToken(rawToken)
+  const url = `${input.baseUrl}/auth/invite/start?token=${encodeURIComponent(rawToken)}`
 
-  // Insert auth_invite row + look up organization metadata for the email
-  // template (workspace name, inviter name). Done inside withAdminBypass
-  // because the issuer's session GUC may not be bound to this org yet.
   const { workspaceName, inviterName, inviteId } = await withAdminBypass(
     async (db) => {
       const [org] = await db
@@ -134,11 +133,64 @@ export async function issueInvite(
 }
 
 /**
+ * Look up an invite by its raw token. Caller provides the raw token from
+ * the URL or cookie; we hash + SELECT here so the lookup is a constant
+ * SHA-256 + indexed read.
+ *
+ * Returns:
+ *   - the invite record if pending + not expired (caller sees full claims)
+ *   - { status: 'accepted' | 'revoked' | 'expired', ... } when the row exists
+ *     but is no longer usable — caller can render an appropriate error
+ *   - null if the token does not exist (treated identically to "expired"
+ *     to avoid token-enumeration leaks)
+ *
+ * Auto-expires rows whose `expires_at` has passed but still carry
+ * `status='pending'` (the cleanup worker may not have run yet).
+ */
+export async function readInviteByRawToken(
+  rawToken: string,
+): Promise<InviteRecord | null> {
+  if (!rawToken) return null
+  const tokenHash = hashInviteToken(rawToken)
+  return await withAdminBypass(async (db) => {
+    const [row] = await db
+      .select({
+        id: auth_invite.id,
+        email: auth_invite.email,
+        organization_id: auth_invite.organization_id,
+        workspace_id: auth_invite.workspace_id,
+        role: auth_invite.role,
+        status: auth_invite.status,
+        expires_at: auth_invite.expires_at,
+      })
+      .from(auth_invite)
+      .where(eq(auth_invite.token_hash, tokenHash))
+      .limit(1)
+    if (!row) return null
+
+    // Soft auto-expire: a pending row past expires_at is functionally
+    // expired even if the cleanup worker hasn't flipped its status yet.
+    let status = row.status
+    if (status === "pending" && row.expires_at <= new Date()) {
+      status = "expired"
+    }
+
+    return {
+      id: row.id,
+      email: row.email,
+      organizationId: row.organization_id,
+      workspaceId: row.workspace_id,
+      role: row.role as InviteRole,
+      status: status as InviteRecord["status"],
+      expiresAt: row.expires_at,
+    }
+  })
+}
+
+/**
  * Mark every still-pending invite for (organizationId, email) as
  * 'revoked'. Call this BEFORE issuing a fresh invite to the same
  * recipient so an older token can no longer be redeemed.
- *
- * Returns the count of revoked rows for logging.
  */
 export async function revokePendingInvites(input: {
   organizationId: string
@@ -186,6 +238,21 @@ export async function findOrganizationOwner(
   })
 }
 
-function sha256(input: string): string {
-  return createHash("sha256").update(input).digest("hex")
+/**
+ * Mark all expired-but-still-pending invites as 'expired'. Called by
+ * the daily cleanup worker (see packages/workers/src/jobs/
+ * cleanup-auth-invites.ts).
+ */
+export async function expireDuePendingInvites(): Promise<number> {
+  const rows = await withAdminBypass(async (db) => {
+    const result = (await db.execute(
+      sql`UPDATE auth_invite
+          SET status = 'expired'
+          WHERE expires_at < now()
+            AND status = 'pending'
+          RETURNING id`,
+    )) as unknown as Array<{ id: string }>
+    return result
+  })
+  return rows.length
 }

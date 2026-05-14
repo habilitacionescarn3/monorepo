@@ -1,5 +1,4 @@
 export { signSignupToken, verifySignupToken, type SignupClaims } from "./signup"
-export { signInviteToken, verifyInviteToken, type InviteClaims } from "./invite"
 export {
   signLoginEmailToken,
   verifyLoginEmailToken,
@@ -10,4 +9,15 @@ export {
   verifyOnboardingStateToken,
   type OnboardingStateClaims,
 } from "./onboarding-state"
+export {
+  generateRawInviteToken,
+  hashInviteToken,
+  INVITE_TOKEN_BYTES,
+  type InviteRecord,
+} from "./invite"
+export {
+  signActiveWorkspaceToken,
+  verifyActiveWorkspaceToken,
+  type ActiveWorkspaceClaims,
+} from "./active-workspace"
 export { TokenError } from "./jwt"
