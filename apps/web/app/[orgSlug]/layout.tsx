@@ -54,7 +54,6 @@ export default async function OrgLayout({
         </div>
         <nav className="flex-1 space-y-1 text-sm">
           <NavItem href={`/${orgSlug}`} label="Dashboard" />
-          <NavItem href={`/${orgSlug}/inbox`} label="Inbox" />
           <NavItem href={`/${orgSlug}/documents`} label="Documents" />
           <NavItem href={`/${orgSlug}/transactions`} label="Transactions" />
           <NavItem href={`/${orgSlug}/accounting`} label="Accounting" />
