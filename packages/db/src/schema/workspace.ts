@@ -12,6 +12,7 @@
 import { pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 import { app_user } from "./app_user"
+import { workspaceTeamSize, workspaceUseCase } from "./_enums"
 
 export const workspace = pgTable("workspace", {
   id: uuid("id")
@@ -25,6 +26,10 @@ export const workspace = pgTable("workspace", {
   contact_email: text("contact_email"),
   contact_phone: varchar("contact_phone", { length: 20 }),
   website: text("website"),
+
+  // Onboarding wizard collects these — added in migration 0012_onboarding_extensions.sql
+  use_case: workspaceUseCase("use_case"),
+  team_size: workspaceTeamSize("team_size"),
   created_at: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
