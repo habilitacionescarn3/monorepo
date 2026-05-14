@@ -12,36 +12,58 @@ import {
 } from "@workspace/ui/components/drawer"
 import { Button } from "@workspace/ui/components/button"
 
-const directions = ["top", "right", "bottom", "left"] as const
+const directions = [
+  {
+    direction: "top",
+    label: "From top",
+    title: "Notifications",
+    description: "Recent activity in your workspace.",
+    body: "You have 3 new comments and 1 mention from this week.",
+  },
+  {
+    direction: "right",
+    label: "From right",
+    title: "Filters",
+    description: "Refine the list by status, owner, and date.",
+    body: "Use checkboxes to narrow results. Selections persist while the drawer is open.",
+  },
+  {
+    direction: "bottom",
+    label: "From bottom",
+    title: "Share invoice",
+    description: "Send a copy via email or copy a public link.",
+    body: "Public links expire in 7 days unless renewed.",
+  },
+  {
+    direction: "left",
+    label: "From left",
+    title: "Recent files",
+    description: "Pick up where you left off.",
+    body: "Files you opened in the last 7 days appear here.",
+  },
+] as const
 
 export function DrawerDemo() {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {directions.map((direction) => (
+      {directions.map(({ direction, label, title, description, body }) => (
         <Drawer key={direction} direction={direction}>
           <DrawerTrigger asChild>
-            <Button variant="outline" className="capitalize">
-              {direction}
-            </Button>
+            <Button variant="outline">{label}</Button>
           </DrawerTrigger>
           <DrawerContent>
             <DrawerHeader>
-              <DrawerTitle className="capitalize">
-                Drawer from {direction}
-              </DrawerTitle>
-              <DrawerDescription>
-                This drawer slides in from the {direction} edge of the screen.
-              </DrawerDescription>
+              <DrawerTitle>{title}</DrawerTitle>
+              <DrawerDescription>{description}</DrawerDescription>
             </DrawerHeader>
-            <div className="flex flex-col gap-2 p-4">
-              <p className="text-sm text-muted-foreground">
-                Drawers work well on mobile and for transient flows.
-              </p>
+            <div className="px-4 pb-4 text-sm text-muted-foreground">
+              {body}
             </div>
-            <DrawerFooter>
+            <DrawerFooter className="flex-row justify-end gap-2">
               <DrawerClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline">Cancel</Button>
               </DrawerClose>
+              <Button>Continue</Button>
             </DrawerFooter>
           </DrawerContent>
         </Drawer>

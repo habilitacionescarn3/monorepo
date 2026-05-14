@@ -1049,7 +1049,7 @@ export default function ShowcasePage() {
         <div className="flex flex-col gap-6">
           <div>
             <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-              Bottom drawer with actions
+              Slides in from any edge (top / right / bottom / left)
             </h3>
             <div className="flex flex-wrap gap-3">
               <DrawerDemo />
@@ -1066,7 +1066,7 @@ export default function ShowcasePage() {
         <div className="flex flex-col gap-6">
           <div>
             <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-              Account menu with groups and shortcuts
+              Standard menu and avatar trigger with submenu / radio / checkbox
             </h3>
             <div className="flex flex-wrap gap-3">
               <DropdownMenuDemo />
@@ -1908,7 +1908,7 @@ export default function ShowcasePage() {
         <div className="flex flex-col gap-6">
           <div>
             <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-              Right side panel with settings
+              Side panel from any edge (top / right / bottom / left)
             </h3>
             <div className="flex flex-wrap gap-3">
               <SheetDemo />
