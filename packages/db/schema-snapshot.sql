@@ -834,8 +834,6 @@ CREATE TABLE public.two_factor (
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-ALTER TABLE ONLY public.two_factor FORCE ROW LEVEL SECURITY;
-
 --
 -- Name: two_factor_policy; Type: TABLE; Schema: public; Owner: -
 --
@@ -1864,12 +1862,6 @@ CREATE POLICY resource_grant_self_read ON public.resource_grant FOR SELECT USING
 ALTER TABLE public.tool_call_log ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: two_factor; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.two_factor ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: two_factor_policy; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -1886,18 +1878,6 @@ CREATE POLICY two_factor_policy_ws_admin_all ON public.two_factor_policy TO app_
 --
 
 CREATE POLICY two_factor_policy_ws_member_read ON public.two_factor_policy FOR SELECT TO app_user USING (((workspace_id = (NULLIF(current_setting('app.workspace_id'::text, true), ''::text))::uuid) AND public.app_is_workspace_member(workspace_id, (NULLIF(current_setting('app.user_id'::text, true), ''::text))::uuid)));
-
---
--- Name: two_factor two_factor_self_read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY two_factor_self_read ON public.two_factor FOR SELECT USING ((user_id = (NULLIF(current_setting('app.user_id'::text, true), ''::text))::uuid));
-
---
--- Name: two_factor two_factor_self_write; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY two_factor_self_write ON public.two_factor USING ((user_id = (NULLIF(current_setting('app.user_id'::text, true), ''::text))::uuid)) WITH CHECK ((user_id = (NULLIF(current_setting('app.user_id'::text, true), ''::text))::uuid));
 
 --
 -- Name: workspace; Type: ROW SECURITY; Schema: public; Owner: -
