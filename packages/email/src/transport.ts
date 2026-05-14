@@ -48,7 +48,15 @@ export interface OutboxEntry {
 }
 
 const MAX_OUTBOX = 50
-const OUTBOX: OutboxEntry[] = []
+
+// Stash the ring buffer on globalThis so every Next.js bundle (server
+// actions, route handlers, RSC) that imports @workspace/email points at
+// the same array. Without this, Turbopack ships a fresh copy of the
+// module per bundle group and sends recorded by the server-action bundle
+// never reach the route-handler bundle's readDevOutbox().
+const OUTBOX: OutboxEntry[] = ((
+  globalThis as unknown as { __APP_EMAIL_OUTBOX?: OutboxEntry[] }
+).__APP_EMAIL_OUTBOX ??= [])
 
 function extractUrl(text?: string): string | undefined {
   if (!text) return undefined
