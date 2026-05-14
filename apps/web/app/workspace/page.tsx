@@ -19,6 +19,8 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 
+import { AccountMenu } from "../auth/_components/account-menu"
+
 export const metadata = {
   title: "Your workspaces",
 }
@@ -66,11 +68,14 @@ export default async function WorkspaceChooserPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-12">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Your workspaces</h1>
-        <p className="text-sm text-muted-foreground">
-          Pick a workspace to enter, or open one of its organizations.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">Your workspaces</h1>
+          <p className="text-sm text-muted-foreground">
+            Pick a workspace to enter, or open one of its organizations.
+          </p>
+        </div>
+        <AccountMenu email={session.user.email} />
       </header>
       <div className="grid gap-4">
         {workspaces.map((ws) => (
