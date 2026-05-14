@@ -87,7 +87,6 @@ jobs:
 
       - name: Dump schema after first pass
         env:
-          PATH: /usr/lib/postgresql/18/bin:${{ env.PATH }}
           PGHOST: 127.0.0.1
           PGPORT: "5432"
           PGUSER: app_owner
@@ -98,6 +97,8 @@ jobs:
           # pg_dump's random \restrict / \unrestrict tokens (PG18) — without
           # this filter two consecutive dumps differ by their session tokens
           # even when the schema is identical.
+          set -euo pipefail
+          export PATH="/usr/lib/postgresql/18/bin:$PATH"
           chmod +x scripts/db-schema-snapshot.sh
           scripts/db-schema-snapshot.sh > /tmp/first.sql
 
@@ -109,13 +110,14 @@ jobs:
 
       - name: Dump schema after second pass
         env:
-          PATH: /usr/lib/postgresql/18/bin:${{ env.PATH }}
           PGHOST: 127.0.0.1
           PGPORT: "5432"
           PGUSER: app_owner
           PGPASSWORD: dev_owner
           PGDATABASE: postgres
         run: |
+          set -euo pipefail
+          export PATH="/usr/lib/postgresql/18/bin:$PATH"
           scripts/db-schema-snapshot.sh > /tmp/second.sql
 
       - name: Diff schemas (any diff = non-idempotent migration)
