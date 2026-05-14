@@ -33,8 +33,8 @@ export function AccountMenu({ email }: Props) {
     setSending(false)
     if (result.ok) {
       toast.success("Reset link sent", {
-        description: `Check ${result.email}. In dev, the link is printed to the dev-server console.`,
-        duration: 8000,
+        description: `Check ${result.email}. In dev with no Resend/SES configured, the link prints to the dev-server console — or visit /api/dev/outbox.`,
+        duration: 10000,
       })
     } else {
       toast.error("Could not send reset email", {

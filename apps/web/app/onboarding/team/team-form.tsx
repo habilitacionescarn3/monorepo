@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useFieldArray, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { useTranslations } from "@workspace/i18n/client"
 import { InviteListSchema, type InviteListInput } from "@workspace/shared/auth"
@@ -38,6 +39,25 @@ export function TeamForm() {
 
   const [serverError, setServerError] = useState<string | null>(null)
 
+  function announceResult(invitesSent: number, failures: number) {
+    if (invitesSent > 0) {
+      toast.success(
+        `${invitesSent} invite${invitesSent === 1 ? "" : "s"} sent`,
+        {
+          description:
+            "If you don't see the email, the dev console transport prints links to your `pnpm dev` terminal — or visit /api/dev/outbox.",
+          duration: 8000,
+        },
+      )
+    }
+    if (failures > 0) {
+      toast.error(`${failures} invite${failures === 1 ? "" : "s"} failed`, {
+        description: "Check the dev-server log for the underlying error.",
+        duration: 8000,
+      })
+    }
+  }
+
   async function onSubmit(values: InviteListInput) {
     setServerError(null)
     const result = await submitTeamAction(values)
@@ -45,6 +65,7 @@ export function TeamForm() {
       setServerError(tErrors(result.errorKey ?? "saveTeamFailed"))
       return
     }
+    announceResult(result.invitesSent ?? 0, result.failures?.length ?? 0)
     router.push("/onboarding/done")
   }
 
