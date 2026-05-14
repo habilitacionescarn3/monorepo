@@ -1,6 +1,12 @@
 {
-  "extends": "@workspace/typescript-config/base.json",
-  "compilerOptions": { "outDir": "dist" },
+  "extends": "@workspace/typescript-config/node-library.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "types": ["node"],
+    "jsx": "preserve",
+    "declaration": false,
+    "declarationMap": false
+  },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
