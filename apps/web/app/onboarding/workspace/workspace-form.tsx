@@ -45,6 +45,7 @@ type TeamSizeKey = (typeof TEAM_SIZE_KEYS)[number]
 export function WorkspaceForm() {
   const router = useRouter()
   const t = useTranslations("onboarding.workspace")
+  const tBrand = useTranslations("brand")
   const tValidation = useTranslations("auth.validation")
   const tErrors = useTranslations("onboarding.errors")
 
@@ -86,7 +87,7 @@ export function WorkspaceForm() {
           {t("title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {t("description", { brand: "Afframe" })}
+          {t("description", { brand: tBrand("name") })}
         </p>
       </header>
 
@@ -118,7 +119,7 @@ export function WorkspaceForm() {
           </Field>
 
           <Field>
-            <FieldLabel>{t("useCase", { brand: "Afframe" })}</FieldLabel>
+            <FieldLabel>{t("useCase", { brand: tBrand("name") })}</FieldLabel>
             <RadioGroup
               value={useCase}
               onValueChange={(v: string) =>
@@ -126,7 +127,7 @@ export function WorkspaceForm() {
                   shouldValidate: false,
                 })
               }
-              aria-label={t("useCase", { brand: "Afframe" })}
+              aria-label={t("useCase", { brand: tBrand("name") })}
             >
               <ChoiceCardGrid columns={2}>
                 {USE_CASE_KEYS.map((key) => (

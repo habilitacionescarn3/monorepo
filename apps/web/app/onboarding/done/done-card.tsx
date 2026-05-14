@@ -49,7 +49,7 @@ export function DoneCard() {
         <p className="text-sm text-muted-foreground">{t("description")}</p>
       </header>
 
-      <ol className="flex flex-col gap-2" aria-label="Onboarding timeline">
+      <ol className="flex flex-col gap-2" aria-label={t("timelineLabel")}>
         {TIMELINE_KEYS.map((key) => (
           <li
             key={key}

@@ -315,6 +315,7 @@
       "title": "You're all set",
       "description": "Your workspace is ready. Here's what's next.",
       "open": "Open {brand}",
+      "timelineLabel": "Onboarding timeline",
       "timeline": {
         "step1": "Profile",
         "step2": "Experience",

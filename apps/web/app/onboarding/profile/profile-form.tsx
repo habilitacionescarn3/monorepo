@@ -57,6 +57,7 @@ interface Props {
 export function ProfileForm({ initial }: Props) {
   const router = useRouter()
   const t = useTranslations("onboarding.profile")
+  const tBrand = useTranslations("brand")
   const tValidation = useTranslations("auth.validation")
   const tErrors = useTranslations("onboarding.errors")
 
@@ -106,7 +107,7 @@ export function ProfileForm({ initial }: Props) {
           {t("title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {t("description", { brand: "Afframe" })}
+          {t("description", { brand: tBrand("name") })}
         </p>
       </header>
 

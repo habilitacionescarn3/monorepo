@@ -37,6 +37,10 @@ export function proxy(request: NextRequest): NextResponse {
  * Matcher: gate everything EXCEPT:
  *   /api/*           — Better Auth catchall + future route handlers
  *   /auth/*          — anon flows (login, signup, invite, password reset)
+ *   /onboarding/*    — wizard flows; steps 1-2 run pre-account-creation
+ *                      (no session yet) and per-page guards handle authn
+ *                      for steps that need it. Gating here would bounce
+ *                      every fresh signup invitee back to /auth/login.
  *   /_next/static    — built assets
  *   /_next/image     — image optimizer
  *   /favicon.ico
@@ -45,6 +49,6 @@ export function proxy(request: NextRequest): NextResponse {
  */
 export const config = {
   matcher: [
-    "/((?!api|auth|_next/static|_next/image|favicon\\.ico|showcase|$).*)",
+    "/((?!api|auth|onboarding|_next/static|_next/image|favicon\\.ico|showcase|$).*)",
   ],
 }
