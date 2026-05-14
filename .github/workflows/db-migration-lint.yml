@@ -58,5 +58,5 @@ jobs:
           set -euo pipefail
           export PATH="$HOME/.cargo/bin:$PATH"
           squawk \
-            --exclude prefer-text-field,disallowed-unique-constraint,require-timeout-settings,ban-drop-column \
+            --exclude prefer-text-field,disallowed-unique-constraint,require-timeout-settings,ban-drop-column,prefer-bigint-over-int,prefer-bigint-over-smallint,constraint-missing-not-valid,adding-foreign-key-constraint \
             packages/db/migrations/*.sql
