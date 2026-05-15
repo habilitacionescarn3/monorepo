@@ -1,5 +1,9 @@
 import { createAuthClient } from "better-auth/react"
-import { adminClient, twoFactorClient } from "better-auth/client/plugins"
+import {
+  adminClient,
+  magicLinkClient,
+  twoFactorClient,
+} from "better-auth/client/plugins"
 
 /**
  * Better Auth React client.
@@ -14,7 +18,7 @@ import { adminClient, twoFactorClient } from "better-auth/client/plugins"
  */
 export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
-  plugins: [adminClient(), twoFactorClient()],
+  plugins: [adminClient(), magicLinkClient(), twoFactorClient()],
 })
 
 export const { signIn, signUp, signOut, useSession, getSession, twoFactor } =

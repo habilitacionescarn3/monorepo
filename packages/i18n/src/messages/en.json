@@ -48,13 +48,18 @@
       },
       "password": {
         "title": "Enter your password",
-        "description": "Signing in as {email}.",
+        "description": "Enter your password to continue to {brand}.",
         "label": "Password",
         "rememberMe": "Remember me on this device",
-        "forgotPassword": "Forgot password?",
+        "forgot": "Forgot?",
         "submit": "Sign in",
         "submitting": "Signing in…",
-        "useDifferentEmail": "Use a different email"
+        "useDifferentEmail": "Use a different email",
+        "emailMeLink": "Email me a sign-in link",
+        "magicLinkSentTitle": "Check your email",
+        "magicLinkSentDescription": "We sent a sign-in link to {email}. Open it on this device to continue.",
+        "magicLinkResend": "Resend the link",
+        "magicLinkResendIn": "Resend in {seconds}s"
       },
       "mfa": {
         "title": "Two-factor verification",
@@ -86,7 +91,9 @@
       "backToLogin": "Back to sign in",
       "sent": {
         "title": "Check your email",
-        "description": "If an account exists for {email}, a password-reset link is on the way."
+        "description": "If an account exists for {email}, a password-reset link is on the way.",
+        "resend": "Resend the link",
+        "resendIn": "Resend in {seconds}s"
       }
     },
     "reset": {
@@ -101,6 +108,11 @@
       "invalidLink": {
         "title": "Invalid link",
         "description": "This reset link is missing its token. Request a new one from the forgot-password page."
+      },
+      "success": {
+        "title": "Password updated",
+        "description": "Your password has been reset. You can now sign in with your new password.",
+        "signIn": "Sign in"
       }
     },
     "errors": {

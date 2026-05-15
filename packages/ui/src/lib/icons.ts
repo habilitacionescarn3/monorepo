@@ -1,6 +1,7 @@
 export {
   AlertTriangle,
   ArrowDown,
+  ArrowLeft,
   ArrowRightIcon,
   ArrowUp,
   ArrowUpDown,
@@ -62,6 +63,7 @@ export {
   Loader2,
   Loader2Icon,
   Lock,
+  Mail,
   Maximize,
   Maximize2,
   MaximizeIcon,

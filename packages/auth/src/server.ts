@@ -1,14 +1,25 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { nextCookies } from "better-auth/next-js"
-import { admin, twoFactor } from "better-auth/plugins"
+import { admin, magicLink, twoFactor } from "better-auth/plugins"
 import { db } from "@workspace/db/client"
 import * as schema from "@workspace/db/schema"
 import {
   sendEmail,
   passwordResetEmail,
   verifyEmailEmail,
+  magicLinkEmail,
 } from "@workspace/email"
+
+function resolveBaseURL(): string {
+  const explicit = process.env.BETTER_AUTH_URL
+  const port = process.env.PORT
+  if (!explicit) return `http://localhost:${port ?? "3000"}`
+  if (port && explicit.includes("localhost")) {
+    return explicit.replace(/:\d+/, `:${port}`)
+  }
+  return explicit
+}
 
 /**
  * Better Auth server instance.
@@ -44,7 +55,7 @@ export const auth = betterAuth({
     },
   }),
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: resolveBaseURL(),
   trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",") ?? [],
   user: {
     modelName: "app_user",
@@ -167,6 +178,11 @@ export const auth = betterAuth({
             twoFactorEnabled: "two_factor_enabled",
           },
         },
+      },
+    }),
+    magicLink({
+      sendMagicLink: async ({ email, url }) => {
+        await sendEmail(magicLinkEmail({ to: email, url }))
       },
     }),
     // MUST be last in the plugin chain (per Better Auth docs). nextCookies
