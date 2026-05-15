@@ -173,13 +173,15 @@
     "signup": {
       "metaTitle": "Welcome",
       "welcome": {
-        "title": "Welcome to {brand}",
-        "description": "You've been invited to set up a workspace. Continue to create your account.",
+        "title": "You're in. Let's get to work.",
+        "description": "Confirm your invitation, issued by {brand} support and valid for 7 days.",
         "issuedTo": "Issued to",
         "role": "Role",
         "ownerRole": "Workspace owner",
         "validity": "Valid for 7 days from issue",
-        "continue": "Continue",
+        "continue": "Begin setup",
+        "wrongInvite": "Wrong invitation?",
+        "contactSupport": "Contact {brand} support",
         "alreadyHave": "Already have an account?",
         "signIn": "Sign in"
       }
