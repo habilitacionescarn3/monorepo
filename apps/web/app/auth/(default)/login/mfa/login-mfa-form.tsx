@@ -1,11 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
+import { useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ChevronLeft } from "lucide-react"
 
 import { authClient } from "@workspace/auth/client"
 import { useTranslations } from "@workspace/i18n/client"
@@ -17,12 +15,16 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@workspace/ui/components/field"
+import { Heading } from "@workspace/ui/components/heading"
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@workspace/ui/components/input-otp"
+import { Text } from "@workspace/ui/components/text"
+import { ArrowLeft } from "@workspace/ui/lib/icons"
 
+import { AuthHeaderLinkOverride } from "../../_components/auth-header-link"
 import { clearLoginEmailAction } from "../actions"
 
 interface Props {
@@ -69,24 +71,29 @@ export function LoginMfaForm({ email }: Props) {
     }
   }
 
+  const backIcon = useMemo(
+    () => <ArrowLeft className="size-4" aria-hidden="true" />,
+    [],
+  )
+
   const code = form.watch("code")
 
   return (
     <div className="flex flex-col gap-8">
-      <Link
-        href="/auth/login/password"
-        className="inline-flex items-center gap-1 self-start text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" aria-hidden="true" />
-        {t("tryAnotherMethod")}
-      </Link>
+      <AuthHeaderLinkOverride
+        href="/auth/login"
+        label={t("tryAnotherMethod")}
+        icon={backIcon}
+      />
 
       <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
+        <Heading level={2} className="mt-0">
           {t("title")}
-        </h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
-        <p className="text-xs text-muted-foreground">{email}</p>
+        </Heading>
+        <Text variant="muted">{t("description")}</Text>
+        <Text variant="small" className="text-muted-foreground">
+          {email}
+        </Text>
       </header>
 
       <form
@@ -124,14 +131,14 @@ export function LoginMfaForm({ email }: Props) {
         </FieldGroup>
 
         {serverError && (
-          <p className="text-sm text-destructive" role="alert">
+          <Text variant="small" className="text-destructive" role="alert">
             {serverError}
-          </p>
+          </Text>
         )}
 
         <Button
           type="submit"
-          size="lg"
+          size="xl"
           disabled={form.formState.isSubmitting || code.length !== 6}
         >
           {form.formState.isSubmitting ? t("submitting") : t("submit")}
