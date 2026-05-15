@@ -1,23 +1,30 @@
 "use client"
 
 import { useState, type FormEvent } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+
 import { authClient } from "@workspace/auth/client"
+import { useTranslations } from "@workspace/i18n/client"
+import { OTPSchema, type OTPInput } from "@workspace/shared/auth"
 import { Button } from "@workspace/ui/components/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
-import { Input } from "@workspace/ui/components/input"
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@workspace/ui/components/field"
+import { Heading } from "@workspace/ui/components/heading"
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@workspace/ui/components/input-otp"
-import { Label } from "@workspace/ui/components/label"
+import { PasswordInput } from "@workspace/ui/components/password-input"
+import { Text } from "@workspace/ui/components/text"
+import { ArrowLeft, Copy, Check } from "@workspace/ui/lib/icons"
 
 type Stage = "password" | "verify"
 
@@ -28,128 +35,234 @@ interface EnrollState {
 
 export function MfaSetupForm() {
   const router = useRouter()
+  const t = useTranslations("auth.mfa.setup")
+  const tValidation = useTranslations("auth.validation")
+
   const [stage, setStage] = useState<Stage>("password")
   const [password, setPassword] = useState("")
   const [enroll, setEnroll] = useState<EnrollState | null>(null)
-  const [code, setCode] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false)
+  const [copied, setCopied] = useState<"uri" | "secret" | null>(null)
+
+  const otpForm = useForm<OTPInput>({
+    resolver: zodResolver(OTPSchema),
+    defaultValues: { code: "" },
+    mode: "onSubmit",
+  })
+  const [otpServerError, setOtpServerError] = useState<string | null>(null)
+  const code = otpForm.watch("code")
 
   async function onSubmitPassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setError(null)
-    setSubmitting(true)
+    setPasswordError(null)
+    setPasswordSubmitting(true)
     try {
       const result = await authClient.twoFactor.enable({ password })
       if (result.error) {
-        setError(result.error.message ?? "Could not start enrollment")
-        setSubmitting(false)
+        setPasswordError(result.error.message ?? t("password.errorGeneric"))
+        setPasswordSubmitting(false)
         return
       }
       const totpURI = (result.data as { totpURI?: string } | null)?.totpURI
       if (!totpURI) {
-        setError("Backend did not return a TOTP URI.")
-        setSubmitting(false)
+        setPasswordError(t("password.errorMissingUri"))
+        setPasswordSubmitting(false)
         return
       }
-      const secret = extractSecret(totpURI)
-      setEnroll({ totpURI, secret })
+      setEnroll({ totpURI, secret: extractSecret(totpURI) })
       setStage("verify")
     } catch (err) {
-      setError((err as Error).message ?? "Could not start enrollment")
+      setPasswordError((err as Error).message ?? t("password.errorGeneric"))
     } finally {
-      setSubmitting(false)
+      setPasswordSubmitting(false)
     }
   }
 
-  async function onSubmitVerify(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (code.length !== 6) {
-      setError("Enter the 6-digit code from your authenticator app.")
-      return
-    }
-    setError(null)
-    setSubmitting(true)
+  function translateOtpValidation(msg: string | undefined): string | undefined {
+    if (!msg) return undefined
+    if (msg.startsWith("otp.")) return tValidation(msg)
+    return msg
+  }
+
+  async function onSubmitVerify(values: OTPInput) {
+    setOtpServerError(null)
     try {
-      const result = await authClient.twoFactor.verifyTotp({ code })
+      const result = await authClient.twoFactor.verifyTotp({
+        code: values.code,
+      })
       if (result.error) {
-        setError(result.error.message ?? "Invalid code")
-        setSubmitting(false)
+        setOtpServerError(result.error.message ?? t("verify.errorGeneric"))
         return
       }
       router.push("/workspace/profile?mfa=enabled")
     } catch (err) {
-      setError((err as Error).message ?? "Invalid code")
-      setSubmitting(false)
+      setOtpServerError((err as Error).message ?? t("verify.errorGeneric"))
+    }
+  }
+
+  async function copyValue(value: string, which: "uri" | "secret") {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(which)
+      setTimeout(() => setCopied((c) => (c === which ? null : c)), 1500)
+    } catch {
+      // clipboard may be unavailable (insecure context); silently ignore
     }
   }
 
   if (stage === "password") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Set up two-factor authentication</CardTitle>
-          <CardDescription>
-            Confirm your password to begin enrollment.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmitPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">Current password</Label>
-              <Input
-                id="password"
-                type="password"
+      <div className="flex flex-col gap-8">
+        <Link
+          href="/workspace/profile"
+          className="inline-flex items-center gap-1 self-start text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {t("backToProfile")}
+        </Link>
+
+        <header className="flex flex-col gap-2">
+          <Heading level={2} className="mt-0">
+            {t("password.title")}
+          </Heading>
+          <Text variant="muted">{t("password.description")}</Text>
+        </header>
+
+        <form
+          onSubmit={onSubmitPassword}
+          className="flex flex-col gap-5"
+          noValidate
+        >
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="mfa-password">
+                {t("password.label")}
+              </FieldLabel>
+              <PasswordInput
+                id="mfa-password"
                 autoComplete="current-password"
-                required
+                autoFocus
+                inputSize="xl"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onValueChange={setPassword}
+                required
               />
-            </div>
-            {error ? (
-              <p className="text-sm text-destructive" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Starting…" : "Continue"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            </Field>
+          </FieldGroup>
+
+          {passwordError && (
+            <Text variant="small" className="text-destructive" role="alert">
+              {passwordError}
+            </Text>
+          )}
+
+          <Button
+            type="submit"
+            size="xl"
+            disabled={passwordSubmitting || password.length === 0}
+          >
+            {passwordSubmitting
+              ? t("password.submitting")
+              : t("password.submit")}
+          </Button>
+        </form>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Scan this in your authenticator app</CardTitle>
-        <CardDescription>
-          Use Google Authenticator, 1Password, Authy, or similar. After
-          scanning, enter the 6-digit code below to confirm.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {enroll ? (
-          <div className="mb-4 space-y-2">
-            <Label>otpauth URI</Label>
-            <code className="block rounded-md bg-muted p-3 text-xs break-all">
-              {enroll.totpURI}
-            </code>
-            <Label>Secret (manual entry)</Label>
-            <code className="block rounded-md bg-muted p-3 text-xs break-all">
-              {enroll.secret}
-            </code>
+    <div className="flex flex-col gap-8">
+      <button
+        type="button"
+        onClick={() => {
+          setStage("password")
+          setEnroll(null)
+          otpForm.reset({ code: "" })
+          setOtpServerError(null)
+        }}
+        className="inline-flex items-center gap-1 self-start text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        {t("backToProfile")}
+      </button>
+
+      <header className="flex flex-col gap-2">
+        <Heading level={2} className="mt-0">
+          {t("verify.title")}
+        </Heading>
+        <Text variant="muted">{t("verify.description")}</Text>
+      </header>
+
+      {enroll && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">{t("verify.uriLabel")}</span>
+            <div className="flex items-stretch gap-2">
+              <code className="flex-1 rounded-lg border border-input bg-muted/40 p-3 text-xs break-all">
+                {enroll.totpURI}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copyValue(enroll.totpURI, "uri")}
+                aria-label={t("verify.copy")}
+              >
+                {copied === "uri" ? (
+                  <Check className="size-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
+                {copied === "uri" ? t("verify.copied") : t("verify.copy")}
+              </Button>
+            </div>
           </div>
-        ) : null}
-        <form onSubmit={onSubmitVerify} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="otp">6-digit code</Label>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">
+              {t("verify.secretLabel")}
+            </span>
+            <div className="flex items-stretch gap-2">
+              <code className="flex-1 rounded-lg border border-input bg-muted/40 p-3 text-xs break-all">
+                {enroll.secret}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copyValue(enroll.secret, "secret")}
+                aria-label={t("verify.copy")}
+              >
+                {copied === "secret" ? (
+                  <Check className="size-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
+                {copied === "secret" ? t("verify.copied") : t("verify.copy")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form
+        onSubmit={otpForm.handleSubmit(onSubmitVerify)}
+        className="flex flex-col gap-5"
+        noValidate
+      >
+        <FieldGroup>
+          <Field
+            data-invalid={otpForm.formState.errors.code ? "true" : undefined}
+          >
+            <FieldLabel htmlFor="mfa-otp">{t("verify.label")}</FieldLabel>
             <InputOTP
-              id="otp"
+              id="mfa-otp"
               maxLength={6}
               value={code}
-              onChange={setCode}
+              onChange={(v) =>
+                otpForm.setValue("code", v, { shouldValidate: false })
+              }
               autoFocus
             >
               <InputOTPGroup>
@@ -161,22 +274,31 @@ export function MfaSetupForm() {
                 <InputOTPSlot index={5} />
               </InputOTPGroup>
             </InputOTP>
-          </div>
-          {error ? (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={submitting || code.length !== 6}
-          >
-            {submitting ? "Verifying…" : "Confirm"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            {otpForm.formState.errors.code && (
+              <FieldError>
+                {translateOtpValidation(otpForm.formState.errors.code.message)}
+              </FieldError>
+            )}
+          </Field>
+        </FieldGroup>
+
+        {otpServerError && (
+          <Text variant="small" className="text-destructive" role="alert">
+            {otpServerError}
+          </Text>
+        )}
+
+        <Button
+          type="submit"
+          size="xl"
+          disabled={otpForm.formState.isSubmitting || code.length !== 6}
+        >
+          {otpForm.formState.isSubmitting
+            ? t("verify.submitting")
+            : t("verify.submit")}
+        </Button>
+      </form>
+    </div>
   )
 }
 

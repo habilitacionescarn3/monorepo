@@ -80,6 +80,33 @@
       },
       "divider": "or"
     },
+    "mfa": {
+      "setup": {
+        "metaTitle": "Set up two-factor",
+        "backToProfile": "Back to profile",
+        "password": {
+          "title": "Set up two-factor authentication",
+          "description": "Confirm your password to begin enrolling an authenticator app.",
+          "label": "Current password",
+          "submit": "Continue",
+          "submitting": "Starting…",
+          "errorGeneric": "Could not start enrollment.",
+          "errorMissingUri": "Server did not return a TOTP URI. Try again."
+        },
+        "verify": {
+          "title": "Scan with your authenticator app",
+          "description": "Add this secret to Google Authenticator, 1Password, Authy, or any TOTP app, then enter the 6-digit code below to confirm.",
+          "uriLabel": "Setup URI",
+          "secretLabel": "Secret (manual entry)",
+          "copy": "Copy",
+          "copied": "Copied",
+          "label": "6-digit code",
+          "submit": "Confirm and enable",
+          "submitting": "Verifying…",
+          "errorGeneric": "Invalid code. Try again."
+        }
+      }
+    },
     "forgot": {
       "metaTitle": "Forgot password",
       "title": "Forgot your password?",
