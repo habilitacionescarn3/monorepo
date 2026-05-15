@@ -189,14 +189,17 @@
       "welcome": {
         "title": "You've been invited",
         "description": "Join the team on {brand} and pick up where everyone else left off.",
-        "issuedTo": "Issued to",
-        "role": "Role",
-        "validity": "Valid for 7 days from issue",
-        "continueExisting": "Accept and continue",
-        "continueNew": "Create my account",
+        "decline": "Decline invitation",
+        "emailLabel": "Email",
+        "roleLabel": "Role",
+        "continueExisting": "Accept invitation",
+        "continueNew": "Accept invitation",
         "submittingExisting": "Joining…",
-        "wrongEmail": "This invite is for {email}, but you're signed in as {sessionEmail}. Sign out to accept it.",
-        "signOut": "Sign out"
+        "divider": "or",
+        "signInExisting": "Sign in to an existing account",
+        "wrongEmail": "This invite is for {email}, but you're signed in as {sessionEmail}.",
+        "signOut": "Sign out and continue",
+        "footnote": "By accepting, you agree to {brand}'s Terms and Privacy Policy. Invitation expires in 7 days."
       }
     }
   },
