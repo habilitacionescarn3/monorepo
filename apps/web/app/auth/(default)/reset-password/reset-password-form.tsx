@@ -96,7 +96,7 @@ export function ResetPasswordForm() {
           href="/auth/forgot-password"
           className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
-          {t("backToLogin")}
+          {t("invalidLink.requestNew")}
         </Link>
       </div>
     )

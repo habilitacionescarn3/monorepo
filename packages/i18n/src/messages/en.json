@@ -134,7 +134,8 @@
       "backToLogin": "Back to sign in",
       "invalidLink": {
         "title": "Invalid link",
-        "description": "This reset link is missing its token. Request a new one from the forgot-password page."
+        "description": "This reset link is missing its token. Request a new one from the forgot-password page.",
+        "requestNew": "Request a new link"
       },
       "success": {
         "title": "Password updated",
