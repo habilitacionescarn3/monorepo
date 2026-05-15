@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowUpRight } from "lucide-react"
 import { getTranslations } from "@workspace/i18n/server"
 import { AUTH_ASIDE_LOGOS } from "@workspace/shared"
 import {
@@ -13,11 +12,14 @@ import {
 } from "@workspace/ui/blocks/auth-shell"
 import {
   AuthAside,
+  AuthAsideBottom,
   AuthAsideHeadline,
   AuthAsideQuote,
   AuthAsideSubtitle,
+  AuthAsideTop,
 } from "@workspace/ui/blocks/auth-aside"
 import { Marquee } from "@workspace/ui/components/marquee"
+import { ArrowUpRight, WalletMinimal } from "@workspace/ui/lib/icons"
 
 import { LanguagePicker } from "../../_components/language-picker"
 
@@ -52,7 +54,11 @@ export default async function AuthDefaultLayout({
       <AuthShellLeft>
         <AuthShellHeader>
           <div className="flex w-full items-center justify-between gap-4">
-            <span className="text-base font-semibold tracking-tight">
+            <span className="inline-flex items-center gap-2 text-base font-semibold tracking-tight">
+              <WalletMinimal
+                className="size-5 text-foreground"
+                aria-hidden="true"
+              />
               {brand}
             </span>
             <Link
@@ -66,7 +72,7 @@ export default async function AuthDefaultLayout({
         </AuthShellHeader>
         <AuthShellBody>{children}</AuthShellBody>
         <AuthShellFooter>
-          <div className="flex w-full flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex w-full flex-wrap items-center justify-between gap-3 text-sm">
             <span>
               © {year} {brand}
             </span>
@@ -95,30 +101,38 @@ export default async function AuthDefaultLayout({
         </AuthShellFooter>
       </AuthShellLeft>
       <AuthShellAside>
-        <AuthAside variant="photo" image="/auth/aside-bg.jpg">
-          <AuthAsideHeadline>{tAside("headline")}</AuthAsideHeadline>
-          <AuthAsideSubtitle>{tAside("subtitle", { brand })}</AuthAsideSubtitle>
-          <AuthAsideQuote
-            author={tAside("quote.author")}
-            role={tAside("quote.role")}
-          >
-            {tAside("quote.text")}
-          </AuthAsideQuote>
-          <Marquee
-            pauseOnHover
-            repeat={3}
-            className="mt-2 [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)] [--duration:32s] [--gap:2.25rem]"
-            aria-label="Companies using Afframe"
-          >
-            {AUTH_ASIDE_LOGOS.map((name) => (
-              <span
-                key={name}
-                className="font-heading text-sm font-semibold tracking-tight opacity-70"
+        <AuthAside variant="photo" image="/auth/aside-bg.jpg" bgAlign="left">
+          <AuthAsideTop>
+            <AuthAsideHeadline>{tAside("headline")}</AuthAsideHeadline>
+            <AuthAsideSubtitle>
+              {tAside("subtitle", { brand })}
+            </AuthAsideSubtitle>
+          </AuthAsideTop>
+          <AuthAsideBottom>
+            <AuthAsideQuote
+              author={tAside("quote.author")}
+              role={tAside("quote.role")}
+            >
+              {tAside("quote.text")}
+            </AuthAsideQuote>
+            <div className="w-full overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]">
+              <Marquee
+                pauseOnHover
+                repeat={3}
+                className="mt-2 [--duration:32s] [--gap:2.25rem]"
+                aria-label="Companies using Afframe"
               >
-                {name}
-              </span>
-            ))}
-          </Marquee>
+                {AUTH_ASIDE_LOGOS.map((name) => (
+                  <span
+                    key={name}
+                    className="font-heading text-sm font-semibold tracking-tight opacity-70"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </Marquee>
+            </div>
+          </AuthAsideBottom>
         </AuthAside>
       </AuthShellAside>
     </AuthShell>

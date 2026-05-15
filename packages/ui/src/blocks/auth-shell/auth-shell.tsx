@@ -38,7 +38,12 @@ function AuthShell({ className, children, ...props }: AuthShellProps) {
     <div
       data-slot="auth-shell"
       className={cn(
-        "grid min-h-svh bg-background md:h-svh md:min-h-0 md:grid-cols-[2fr_3fr] md:overflow-hidden",
+        // `minmax(0, Nfr)` instead of bare `Nfr` so aside content with
+        // implicit `max-content` width (e.g. AuthAsideLogoMarquee) cannot
+        // expand its track past its fraction share. Without this, the
+        // marquee balloons the 3fr track and starves the 2fr form column
+        // to zero width.
+        "grid min-h-svh bg-background md:h-svh md:min-h-0 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:overflow-hidden",
         className,
       )}
       {...props}
@@ -71,7 +76,7 @@ function AuthShellHeader({
   return (
     <header
       data-slot="auth-shell-header"
-      className={cn("flex flex-col gap-2 px-6 pt-6 pb-0", className)}
+      className={cn("flex flex-col gap-2 px-10 pt-10 pb-0", className)}
       {...props}
     >
       {backHref && (
@@ -96,10 +101,10 @@ function AuthShellBody({
   return (
     <main
       data-slot="auth-shell-body"
-      className={cn("flex flex-1 flex-col items-center px-6 py-8", className)}
+      className={cn("flex flex-1 flex-col items-center px-10 py-10", className)}
       {...props}
     >
-      <div className="my-auto w-full max-w-lg">{children}</div>
+      <div className="my-auto w-full max-w-md">{children}</div>
     </main>
   )
 }
@@ -113,7 +118,7 @@ function AuthShellFooter({
     <footer
       data-slot="auth-shell-footer"
       className={cn(
-        "flex items-center justify-end gap-4 px-6 py-4 text-sm text-muted-foreground",
+        "flex items-center justify-end gap-4 px-10 py-10 text-sm text-muted-foreground",
         className,
       )}
       {...props}

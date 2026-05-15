@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { KeyRound, ArrowUpRight } from "lucide-react"
 
 import { useTranslations } from "@workspace/i18n/client"
 import { LoginEmailSchema, type LoginEmailInput } from "@workspace/shared/auth"
@@ -17,13 +16,16 @@ import {
   FieldLabel,
   FieldSeparator,
 } from "@workspace/ui/components/field"
+import { Heading } from "@workspace/ui/components/heading"
 import { Input } from "@workspace/ui/components/input"
+import { Text } from "@workspace/ui/components/text"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
+import { ArrowUpRight, KeyRound } from "@workspace/ui/lib/icons"
 
 import { identifyEmailAction } from "./actions"
 
@@ -101,10 +103,10 @@ export function LoginEmailForm() {
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
+        <Heading level={2} className="mt-0">
           {t("title", { brand: brandName })}
-        </h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
+        </Heading>
+        <Text variant="muted">{t("description")}</Text>
       </header>
 
       <form
@@ -120,6 +122,7 @@ export function LoginEmailForm() {
             <Input
               id="email"
               type="email"
+              inputSize="xl"
               autoComplete="email"
               autoFocus
               placeholder={t("placeholder")}
@@ -135,12 +138,12 @@ export function LoginEmailForm() {
         </FieldGroup>
 
         {serverError && (
-          <p className="text-sm text-destructive" role="alert">
+          <Text variant="small" className="text-destructive" role="alert">
             {serverError}
-          </p>
+          </Text>
         )}
 
-        <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
+        <Button type="submit" size="xl" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? t("submitting") : t("submit")}
         </Button>
       </form>
@@ -154,7 +157,7 @@ export function LoginEmailForm() {
               <Button
                 type="button"
                 variant="outline"
-                size="lg"
+                size="xl"
                 className="w-full"
                 disabled
                 aria-disabled="true"
@@ -168,7 +171,7 @@ export function LoginEmailForm() {
         </Tooltip>
       </TooltipProvider>
 
-      <p className="text-sm text-muted-foreground">
+      <Text variant="muted">
         {t("contactSalesPrompt", { brand: brandName })}{" "}
         <Link
           href="#"
@@ -177,7 +180,7 @@ export function LoginEmailForm() {
           {t("contactSalesCta")}
           <ArrowUpRight className="size-3" aria-hidden="true" />
         </Link>
-      </p>
+      </Text>
     </div>
   )
 }

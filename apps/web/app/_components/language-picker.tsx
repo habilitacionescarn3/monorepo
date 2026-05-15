@@ -1,7 +1,6 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Globe, Check } from "lucide-react"
 import { useLocale } from "next-intl"
 
 import {
@@ -18,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
+import { Check, Globe } from "@workspace/ui/lib/icons"
 
 /**
  * Footer language switcher.
@@ -29,15 +29,14 @@ import {
  * re-resolves messages.
  *
  * No new UI variants — composes existing `DropdownMenu` + `Button`
- * with the lucide Globe + Check icons. Picker hides when only one
- * locale is registered (current state with `en` only) instead of
- * rendering a degenerate single-option dropdown.
+ * with the lucide Globe + Check icons. Renders even when only one
+ * locale is registered (single-item dropdown is intentional — the
+ * picker is part of the design surface and signals that the surface
+ * is localizable once additional locales drop into `@workspace/i18n`).
  */
 export function LanguagePicker() {
   const router = useRouter()
   const current = useLocale()
-
-  if (locales.length <= 1) return null
 
   function setLocale(next: Locale) {
     if (!isLocale(next)) return
@@ -48,17 +47,12 @@ export function LanguagePicker() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label="Change language"
-          className="gap-1.5"
-        >
-          <Globe className="size-3.5" aria-hidden="true" />
+        <Button variant="outline" size="sm" aria-label="Change language">
+          <Globe aria-hidden="true" />
           <span className="uppercase">{current}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-32">
+      <DropdownMenuContent side="top" align="end" className="min-w-32">
         {locales.map((code) => (
           <DropdownMenuItem
             key={code}

@@ -1,11 +1,13 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import { Heading } from "@workspace/ui/components/heading"
 import { Marquee } from "@workspace/ui/components/marquee"
+import { Text } from "@workspace/ui/components/text"
 import { cn } from "@workspace/ui/lib/utils"
 
 const authAsideVariants = cva(
-  "relative flex h-full min-h-svh flex-col justify-between overflow-hidden p-10",
+  "relative flex h-full min-h-svh flex-col overflow-hidden p-10",
   {
     variants: {
       variant: {
@@ -20,21 +22,52 @@ const authAsideVariants = cva(
   },
 )
 
+const bgAlignClass = {
+  center: "bg-center",
+  left: "bg-left",
+  right: "bg-right",
+} as const
+
+type BgAlign = keyof typeof bgAlignClass
+
 interface AuthAsideProps
   extends
     React.ComponentProps<"aside">,
     VariantProps<typeof authAsideVariants> {
   image?: string
+  /** Background image alignment when variant="photo". Defaults to "center". */
+  bgAlign?: BgAlign
+}
+
+/**
+ * Detect whether children include a Top or Bottom slot. When present, the
+ * inner content wrapper switches to `flex-1 justify-between` so the two
+ * clusters anchor to top + bottom of the aside. Otherwise the original
+ * `flex flex-col gap-6` (top-stacked) layout applies so existing usages
+ * don't shift.
+ */
+function hasAnchorSlot(children: React.ReactNode): boolean {
+  let found = false
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return
+    const componentType = child.type as { displayName?: string } | string
+    if (typeof componentType === "string") return
+    const name = componentType.displayName
+    if (name === "AuthAsideTop" || name === "AuthAsideBottom") found = true
+  })
+  return found
 }
 
 function AuthAside({
   className,
   variant = "photo",
   image,
+  bgAlign = "center",
   children,
   ...props
 }: AuthAsideProps) {
   const isPhoto = variant === "photo"
+  const split = hasAnchorSlot(children)
 
   return (
     <aside
@@ -53,19 +86,33 @@ function AuthAside({
     >
       {isPhoto && (
         <>
-          {/* Background image layer — hidden when prefers-reduced-data */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[image:var(--auth-aside-image)] bg-cover bg-center [@media(prefers-reduced-data:reduce)]:hidden"
+            className={cn(
+              "pointer-events-none absolute inset-0 bg-[image:var(--auth-aside-image)] bg-cover [@media(prefers-reduced-data:reduce)]:hidden",
+              bgAlignClass[bgAlign],
+            )}
           />
-          {/* Radial dark scrim for legibility */}
+          {/* Two stacked radial gradients, each anchored to a text
+              cluster region (top-left + bottom-left of the aside). The
+              scrim spans the FULL aside via `inset-0`, so there is no
+              container edge to terminate the gradient against — alpha
+              fades smoothly into the photo. Stops mirror the design
+              source (Onboarding-monorepo/auth/styles.css). */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.55)_100%)] [@media(prefers-reduced-data:reduce)]:hidden"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_35%_at_28%_18%,rgba(0,0,0,0.55)_0%,rgba(0,0,0,0.35)_35%,rgba(0,0,0,0.15)_65%,rgba(0,0,0,0.05)_85%,transparent_100%),radial-gradient(ellipse_55%_30%_at_25%_82%,rgba(0,0,0,0.55)_0%,rgba(0,0,0,0.35)_35%,rgba(0,0,0,0.15)_65%,rgba(0,0,0,0.05)_85%,transparent_100%)] [@media(prefers-reduced-data:reduce)]:hidden"
           />
         </>
       )}
-      <div className="relative flex flex-col gap-6">{children}</div>
+      <div
+        className={cn(
+          "relative flex flex-col gap-6",
+          split && "h-full flex-1 justify-between",
+        )}
+      >
+        {children}
+      </div>
     </aside>
   )
 }
@@ -76,16 +123,14 @@ function AuthAsideHeadline({
   ...props
 }: React.ComponentProps<"h2">) {
   return (
-    <h2
+    <Heading
+      level={1}
       data-slot="auth-aside-headline"
-      className={cn(
-        "font-heading text-2xl leading-tight font-semibold tracking-tight md:text-3xl",
-        className,
-      )}
+      className={cn("mt-0 max-w-xl font-semibold lg:text-4xl", className)}
       {...props}
     >
       {children}
-    </h2>
+    </Heading>
   )
 }
 
@@ -95,13 +140,14 @@ function AuthAsideSubtitle({
   ...props
 }: React.ComponentProps<"p">) {
   return (
-    <p
+    <Text
+      variant="muted"
       data-slot="auth-aside-subtitle"
-      className={cn("text-base opacity-80", className)}
+      className={cn("max-w-xl text-current opacity-80", className)}
       {...props}
     >
       {children}
-    </p>
+    </Text>
   )
 }
 
@@ -123,13 +169,19 @@ function AuthAsideQuote({
       className={cn("flex flex-col gap-3", className)}
       {...props}
     >
-      <blockquote className="text-sm leading-relaxed opacity-90 before:content-['“'] after:content-['”']">
-        {children}
-      </blockquote>
-      <figcaption className="flex flex-col gap-0.5 text-xs opacity-70">
-        <span className="font-medium">{author}</span>
-        {role && <span>{role}</span>}
-      </figcaption>
+      <Text
+        asChild
+        variant="lead"
+        className="max-w-xl text-current opacity-95 before:content-['“'] after:content-['”']"
+      >
+        <blockquote>{children}</blockquote>
+      </Text>
+      <Text asChild variant="small" className="text-current opacity-75">
+        <figcaption>
+          <span className="font-medium">{author}</span>
+          {role && <span className="font-normal opacity-80"> — {role}</span>}
+        </figcaption>
+      </Text>
     </figure>
   )
 }
@@ -177,10 +229,54 @@ function AuthAsideLogoMarquee({
   )
 }
 
+/**
+ * Slot wrapper that anchors its contents to the TOP of the aside.
+ * Use with `<AuthAside.Bottom>` to get a top+bottom split layout
+ * (headline+subtitle at top, quote+marquee at bottom). When either
+ * Top or Bottom is present, AuthAside swaps its inner wrapper to
+ * `flex-1 justify-between` so the clusters anchor properly.
+ */
+function AuthAsideTop({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="auth-aside-top"
+      className={cn("relative flex max-w-xl flex-col gap-3", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+AuthAsideTop.displayName = "AuthAsideTop"
+
+/** See `AuthAsideTop` — anchors contents to the BOTTOM of the aside. */
+function AuthAsideBottom({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="auth-aside-bottom"
+      className={cn("relative flex max-w-xl flex-col gap-5", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+AuthAsideBottom.displayName = "AuthAsideBottom"
+
 AuthAside.Headline = AuthAsideHeadline
 AuthAside.Subtitle = AuthAsideSubtitle
 AuthAside.Quote = AuthAsideQuote
 AuthAside.LogoMarquee = AuthAsideLogoMarquee
+AuthAside.Top = AuthAsideTop
+AuthAside.Bottom = AuthAsideBottom
 
 export {
   AuthAside,
@@ -188,6 +284,8 @@ export {
   AuthAsideSubtitle,
   AuthAsideQuote,
   AuthAsideLogoMarquee,
+  AuthAsideTop,
+  AuthAsideBottom,
   authAsideVariants,
 }
 export type {
@@ -195,4 +293,5 @@ export type {
   AuthAsideQuoteProps,
   AuthAsideLogoMarqueeProps,
   LogoItem,
+  BgAlign,
 }
