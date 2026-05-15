@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@workspace/auth/server"
 import { getTranslations } from "@workspace/i18n/server"
 
-import { readInviteClaims } from "../../../onboarding/member/_lib/invite-cookie"
+import { readInviteClaims } from "../../../onboarding/_lib/invite-cookie"
 import { InviteWelcomeActions } from "./invite-welcome-actions"
 
 export async function generateMetadata() {

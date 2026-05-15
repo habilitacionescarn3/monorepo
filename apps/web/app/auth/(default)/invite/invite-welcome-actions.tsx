@@ -138,7 +138,7 @@ export function InviteWelcomeActions({
             </Button>
           ) : (
             <Button asChild size="xl">
-              <Link href="/onboarding/member/profile">{t("continueNew")}</Link>
+              <Link href="/onboarding/profile">{t("continueNew")}</Link>
             </Button>
           )}
 

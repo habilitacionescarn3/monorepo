@@ -280,6 +280,7 @@
       "metaTitle": "Choose a password",
       "title": "Choose a password",
       "description": "Pick a strong password of at least 12 characters. You'll use this with {email} to sign in.",
+      "emailLabel": "Email",
       "newPasswordLabel": "Password",
       "confirmPasswordLabel": "Confirm password",
       "submit": "Create account",

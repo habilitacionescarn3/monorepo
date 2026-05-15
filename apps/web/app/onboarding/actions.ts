@@ -28,7 +28,13 @@ import {
 } from "@workspace/shared/auth"
 
 import { issueInvite, revokePendingInvites } from "../auth/_lib/issue-invite"
+import { materializeInvite } from "../auth/_lib/materialize-invite"
 import { setActiveWorkspaceCookie } from "./_lib/active-workspace-cookie"
+import {
+  clearInviteCookie,
+  readInviteClaims,
+  readRawInviteToken,
+} from "./_lib/invite-cookie"
 import { findOwnerWorkspaceId } from "./_lib/resume"
 import { readSignupClaims, clearSignupCookie } from "./_lib/signup-cookie"
 import {
@@ -40,6 +46,14 @@ import {
 export interface ActionResult {
   ok: boolean
   errorKey?: string
+}
+
+/**
+ * Member password action returns the org slug so the client can
+ * redirect to the freshly-joined organization.
+ */
+export interface MemberPasswordResult extends ActionResult {
+  orgSlug?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -55,8 +69,15 @@ function firstErrorKey(zodIssues: Array<{ message: string }>): string {
   return zodIssues[0]?.message ?? "invalid"
 }
 
+function isEmailAlreadyRegistered(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  return /already.*exist|already.*registered|user.*exist|duplicate/i.test(
+    err.message,
+  )
+}
+
 // ---------------------------------------------------------------------------
-// Step 1 — Profile
+// Step 1 — Profile (shared owner + member)
 // ---------------------------------------------------------------------------
 
 export async function submitProfileAction(
@@ -96,7 +117,7 @@ export async function submitProfileAction(
 }
 
 // ---------------------------------------------------------------------------
-// Step 2 — Experience
+// Step 2 — Experience (shared owner + member)
 // ---------------------------------------------------------------------------
 
 export async function submitExperienceAction(
@@ -130,53 +151,59 @@ export async function submitExperienceAction(
 }
 
 // ---------------------------------------------------------------------------
-// Step 3 — Password (creates the BA user, applies cookie state)
+// Step 3 — Password (role-aware)
+//
+// Owner: signs up via signup-cookie email, writes profile + experience,
+// clears signup cookie at the /done step.
+//
+// Member: signs up via invite-cookie email, writes profile + experience,
+// materializes the invite (workspace_membership + organization_membership),
+// returns the org slug.
 //
 // Idempotent across double-clicks and refreshes: if a session already
 // exists (because the user already submitted this step in this browser
 // or a previous attempt completed signUpEmail and was interrupted before
 // cookie cleanup), the action skips re-creating the BA account and only
-// runs the "persist profile + experience + clear cookie" tail.
+// runs the "persist profile + cleanup" tail.
 // ---------------------------------------------------------------------------
 
 export async function submitPasswordAction(
   input: OnboardingPasswordInput,
-): Promise<ActionResult> {
+): Promise<MemberPasswordResult> {
   const parsed = OnboardingPasswordSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, errorKey: firstErrorKey(parsed.error.issues) }
   }
 
-  const claims = await readSignupClaims()
-  if (!claims) {
-    return { ok: false, errorKey: "sessionExpired" }
-  }
-  const state = await readOnboardingState()
-  if (!state.profile || !state.experience) {
-    // User skipped steps 1-2 somehow. Force them back.
+  // Detect role from cookies. Invite wins over signup when both are
+  // present (stronger intent: a specific org membership).
+  const invite = await readInviteClaims()
+  const signup = invite ? null : await readSignupClaims()
+  const email = invite?.email ?? signup?.email
+  if (!email) {
     return { ok: false, errorKey: "sessionExpired" }
   }
 
-  // Idempotency guard: if a session already exists for this email, the
-  // BA user was already created by an earlier attempt. Skip signUpEmail
-  // and proceed to the profile UPDATE + cookie cleanup. Without this,
-  // a double-click or refresh hits BA's "email already exists" path,
-  // which is opaque to the user and leaves the cookie state dangling.
+  const state = await readOnboardingState()
+  if (!state.profile || !state.experience) {
+    return { ok: false, errorKey: "sessionExpired" }
+  }
+
+  // Idempotency guard: if a session already exists for this email,
+  // the BA user was already created by an earlier attempt.
   let userId: string | null = await getActiveUserId()
 
   if (!userId) {
     try {
       const signUp = await auth.api.signUpEmail({
         body: {
-          email: claims.email,
+          email,
           password: parsed.data.password,
           name: `${state.profile.firstName} ${state.profile.lastName}`.trim(),
         },
       })
       userId = signUp.user.id
     } catch (err) {
-      // Surface the actionable "account already exists" case so the user
-      // can recover via /auth/login. Other failures stay generic.
       if (isEmailAlreadyRegistered(err)) {
         return { ok: false, errorKey: "emailAlreadyRegistered" }
       }
@@ -189,9 +216,6 @@ export async function submitPasswordAction(
     return { ok: false, errorKey: "createAccountFailed" }
   }
 
-  // Persist profile + experience onto the new app_user row. autoSignIn:true
-  // + the nextCookies plugin in @workspace/auth/server forward the session
-  // cookie automatically, so no manual signInEmail call is needed here.
   try {
     await withAdminBypass(async (db) => {
       await db
@@ -213,20 +237,35 @@ export async function submitPasswordAction(
     return { ok: false, errorKey: "saveProfileFailed" }
   }
 
+  // Member branch — accept the invite, return the org slug.
+  if (invite) {
+    const rawInviteToken = (await readRawInviteToken()) ?? ""
+    let orgSlug: string
+    try {
+      orgSlug = await materializeInvite({
+        organizationId: invite.organizationId,
+        role: invite.role,
+        userId,
+        inviteRawToken: rawInviteToken,
+        email: invite.email,
+      })
+    } catch (err) {
+      console.error("[onboarding/password] materializeInvite failed", err)
+      return { ok: false, errorKey: "acceptInviteFailed" }
+    }
+    await clearOnboardingState()
+    await clearInviteCookie()
+    return { ok: true, orgSlug }
+  }
+
+  // Owner branch — keep signup cookie until /done so resume.ts can
+  // still detect the role until completion.
   await clearOnboardingState()
   return { ok: true }
 }
 
-function isEmailAlreadyRegistered(err: unknown): boolean {
-  if (!(err instanceof Error)) return false
-  return /already.*exist|already.*registered|user.*exist|duplicate/i.test(
-    err.message,
-  )
-}
-
 // ---------------------------------------------------------------------------
-// Step 4 — Workspace (creates workspace + owner membership +
-// default organization, so step 6 has an org to issue invites against)
+// Step 4 — Workspace (owner only)
 // ---------------------------------------------------------------------------
 
 export async function submitWorkspaceAction(
@@ -277,14 +316,7 @@ export async function submitWorkspaceAction(
         throw new Error("workspace_membership insert returned no row")
       }
 
-      // Default organization seeded so step 6 (team invites) can target
-      // it. Slug = first available {base, base-2, base-3, ...}; legal
-      // name mirrors the workspace display_name for now (editable later
-      // from /[orgSlug]/settings).
       const slug = await pickUniqueSlug(db, slugify(ws.display_name))
-      // organization_id is NOT NULL on insert (no default); the trigger
-      // app_organization_self_id ensures organization_id = id after the
-      // row exists. We pass a fresh uuid here, then UPDATE to match.
       const [org] = await db
         .insert(organization)
         .values({
@@ -298,7 +330,6 @@ export async function submitWorkspaceAction(
         .returning()
       if (!org) throw new Error("organization insert returned no row")
 
-      // Backfill organization_id = id (trigger enforces this invariant).
       await db.execute(
         sql`UPDATE organization SET organization_id = id WHERE id = ${org.id}::uuid`,
       )
@@ -316,9 +347,6 @@ export async function submitWorkspaceAction(
     return { ok: false, errorKey: "createWorkspaceFailed" }
   }
 
-  // Pin the new workspace as the active one so subsequent steps (and
-  // future writes) target it without re-deriving from `ORDER BY
-  // created_at LIMIT 1`. The cookie outlives the onboarding flow.
   if (createdWorkspaceId) {
     await setActiveWorkspaceCookie(createdWorkspaceId)
   }
@@ -326,7 +354,6 @@ export async function submitWorkspaceAction(
   return { ok: true }
 }
 
-/** Lowercase, replace non-alnum with `-`, collapse runs, trim. */
 function slugify(input: string): string {
   return (
     input
@@ -354,7 +381,7 @@ async function pickUniqueSlug(
 }
 
 // ---------------------------------------------------------------------------
-// Step 5 — Plan (records plan choice on workspace, no Stripe wiring)
+// Step 5 — Plan (owner only)
 // ---------------------------------------------------------------------------
 
 export async function submitPlanAction(
@@ -389,14 +416,11 @@ export async function submitPlanAction(
 }
 
 // ---------------------------------------------------------------------------
-// Step 6 — Team (issues real invites against the default organization
-// created at step 4, then marks step complete)
+// Step 6 — Team (owner only)
 // ---------------------------------------------------------------------------
 
 export interface TeamActionResult extends ActionResult {
-  /** Number of invites successfully issued + emailed. */
   invitesSent?: number
-  /** Per-email failure messages (if any). */
   failures?: Array<{ email: string; reason: string }>
 }
 
@@ -413,10 +437,6 @@ export async function submitTeamAction(
   const workspaceId = await findOwnerWorkspaceId(userId)
   if (!workspaceId) return { ok: false, errorKey: "noActiveWorkspace" }
 
-  // Find the default organization seeded at step 4 (the workspace owner's
-  // first org). Email invites target this organization. The invite row
-  // carries workspace_id + organization_id; multi-org workspaces will
-  // pick the right one from a future invite-people UI.
   const defaultOrgId = await withAdminBypass(async (db) => {
     const [row] = await db
       .select({ id: organization.id })
@@ -476,19 +496,26 @@ export async function submitTeamAction(
 }
 
 async function loadBrandName(): Promise<string> {
-  // Dynamic import to avoid pulling next-intl/server into the action's
-  // initial module graph when the action runs from a non-i18n context
-  // (e.g. a test or a script that imports this module directly).
   const { getTranslations } = await import("@workspace/i18n/server")
   const t = await getTranslations("brand")
   return t("name")
 }
 
 // ---------------------------------------------------------------------------
-// Step 7 — Done (marks onboarding complete + clears signup cookie)
+// Step 7 — Done (role-aware)
 // ---------------------------------------------------------------------------
 
 export async function completeOnboardingAction(): Promise<ActionResult> {
+  // Member branch: cookies may already be gone (cleared after step 3).
+  // Idempotent — just clear any residue.
+  const invite = await readInviteClaims()
+  if (invite) {
+    await clearOnboardingState()
+    await clearInviteCookie()
+    return { ok: true }
+  }
+
+  // Owner branch: finalize the workspace + clear signup cookie.
   const userId = await getActiveUserId()
   if (!userId) return { ok: false, errorKey: "sessionExpired" }
   const workspaceId = await findOwnerWorkspaceId(userId)
@@ -514,12 +541,9 @@ export async function completeOnboardingAction(): Promise<ActionResult> {
   return { ok: true }
 }
 
-// ---------------------------------------------------------------------------
-// Misc — "use a different email" from welcome
-// ---------------------------------------------------------------------------
-
 export async function abandonOnboardingAction(): Promise<void> {
   await clearOnboardingState()
   await clearSignupCookie()
+  await clearInviteCookie()
   redirect("/auth/login")
 }
