@@ -18,5 +18,5 @@ pairs:
   - id: schema-needs-migration
     when_changed: "packages/db/src/schema/**"
     require_one_of: "packages/db/migrations/**"
-    severity: warn
+    severity: block
     reason: "Drizzle schema changes must ship with a SQL migration (ADR-0009). The handwritten SQL files in packages/db/migrations/ are the schema source of truth; the TypeScript schema in packages/db/src/schema/ only provides runtime types and must track those migrations."
