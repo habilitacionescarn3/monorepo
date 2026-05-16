@@ -42,7 +42,7 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "@workspace/eslint-config": "workspace:^",
+    "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "^10.3.0",
     "size-limit": "^12.1.0",
