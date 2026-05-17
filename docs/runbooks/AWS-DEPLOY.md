@@ -283,7 +283,7 @@ gh workflow run _deploy-aws.yml -f environment=staging -f stack=app-only --repo 
 
 ### What blocks a deploy
 
-The workflow short-circuits with `go=false` and exits success if `vars.AWS_BOOTSTRAPPED != "true"`. Flip with:
+The workflow short-circuits with `go=false` and exits success if `vars.AWS_BOOTSTRAPPED != "true"`. It is currently `true` (set 2026-05-11); check with `gh variable list`. To change it:
 
 ```bash
 gh variable set AWS_BOOTSTRAPPED --body true --repo hlebtkachenko/monorepo

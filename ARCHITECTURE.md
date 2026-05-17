@@ -179,7 +179,8 @@ Lifecycle: S3 Standard (0d) -> Standard-IA (30d) -> Glacier Flexible (90d) -> De
 ## Deployment Targets
 
 - **Dev:** macOS local Docker (Postgres 18 + pgBouncer).
-- **Prod:** AWS eu-central-1 (ECS Fargate web + worker + API, RDS Postgres 18 + RDS Proxy, S3, ALB + ACM, CloudWatch + OTel Collector sidecar).
+- **Staging:** AWS eu-central-1, deployed and live at `staging.afframe.com`.
+- **Production:** AWS eu-central-1 at `app.afframe.com` — prepared, not yet deployed. Stack: ECS Fargate web + worker + API, RDS Postgres 18 + RDS Proxy, S3, ALB + ACM, CloudWatch + OTel Collector sidecar.
 
 ## Cost Protection
 
