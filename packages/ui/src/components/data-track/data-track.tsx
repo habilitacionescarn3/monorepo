@@ -91,6 +91,12 @@ function DataTrackList({
                 className="absolute inset-y-0 left-0 rounded-sm bg-primary/10"
                 style={{ width: `${widthPct}%` }}
               />
+              {/*
+                Interactive row uses div + role="button" rather than the
+                Button primitive: a row may render an <a> (the href case
+                below), and an anchor cannot be nested inside a <button>.
+                Keyboard handling (Enter/Space) is wired explicitly.
+              */}
               <div
                 className={cn(
                   "relative z-10 flex min-w-0 flex-1 items-center rounded-sm px-2 py-1.5 text-sm text-foreground",

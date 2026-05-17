@@ -27,8 +27,7 @@
       "env": ["AWS_ACCOUNT_ID", "APP_DOMAIN"]
     },
     "test": {
-      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
-      "cache": false
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
     },
     "test:coverage": {
       "dependsOn": ["^build"],
