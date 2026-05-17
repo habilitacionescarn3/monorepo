@@ -59,7 +59,7 @@ jobs:
           if [ "${BOOTSTRAPPED}" = "true" ]; then
             echo "go=true" >> "$GITHUB_OUTPUT"
           else
-            echo "AWS not yet connected. Set AWS_BOOTSTRAPPED=true after running cdk bootstrap once."
+            echo "AWS deploy gated: vars.AWS_BOOTSTRAPPED is not 'true'. Set it to 'true' to enable deploys."
             echo "go=false" >> "$GITHUB_OUTPUT"
           fi
 

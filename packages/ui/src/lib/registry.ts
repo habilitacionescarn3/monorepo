@@ -258,7 +258,7 @@ export const registry: Record<string, ComponentMeta> = {
     sourceType: "custom",
     upstream: "https://ui.shadcn.com/docs/components/chart",
     description:
-      "Unified chart component with area, bar/column, line, composed, pie, donut, and radar types. ChartContainer/Tooltip/Legend exported for custom recharts compositions.",
+      "Unified chart component dispatched by type: area, bar/column, line, composed, pie, donut, radar, category-bar, and spark-area/spark-line/spark-bar (axis-less mini charts). ChartContainer/Tooltip/Legend exported for custom recharts compositions.",
     categories: ["data"],
     packages: ["recharts"],
   },
@@ -335,6 +335,15 @@ export const registry: Record<string, ComponentMeta> = {
       "Combobox extension with autocomplete + dynamic item creation, built on our Combobox primitive",
     categories: ["forms"],
     dependencies: ["combobox"],
+  },
+  "data-track": {
+    source: "tremor",
+    sourceType: "custom",
+    upstream: "https://www.tremor.so/docs/visualizations/bar-list",
+    description:
+      "Compact data visualization with two variants: list (ranked labelled bars) and tracker (status-block timeline)",
+    categories: ["data"],
+    dependencies: ["tooltip"],
   },
   "data-grid": {
     source: "diceui",
