@@ -1,5 +1,7 @@
 # infra/openstatus
 
+> Public host + email inventory: [`docs/DOMAINS-AND-EMAIL.md`](../../docs/DOMAINS-AND-EMAIL.md).
+
 **Deployed on the OVH VPS (WSL2 Ubuntu, Docker Compose) and fronted by Cloudflare Tunnel.
 NOT an AWS / CDK target — `cdk deploy`, `make deploy-cdk`, and `_deploy-aws.yml` never
 touch this directory.** It holds only monitors-as-code. The OpenStatus app itself runs
@@ -34,15 +36,17 @@ and could be applied as-is — `regions` slug + the `dns` assertion shape would 
 
 ## Monitors
 
+> The table below enumerates OpenStatus monitoring targets only. The canonical inventory of every host afframe operates is [`docs/DOMAINS-AND-EMAIL.md`](../../docs/DOMAINS-AND-EMAIL.md).
+
 | Key             | Target                                 | Check                                           | Public page?                         | Active?                       |
 | --------------- | -------------------------------------- | ----------------------------------------------- | ------------------------------------ | ----------------------------- |
 | `web-app-prod`  | `app.afframe.com/api/version`          | HTTP 200                                        | ✅ Public — group "Web App"          | ❌ paused (prod not deployed) |
 | `api-prod`      | `api.afframe.com/api/health`           | HTTP 200, body contains `"status":"ok"`         | ✅ Public — group "API"              | ❌ paused                     |
 | `admin-prod`    | `admin.afframe.com/api/health`         | HTTP 200, body contains `"ok":true`             | ✅ Public — group "Admin"            | ❌ paused                     |
 | `dns-afframe`   | `afframe.com` apex (A record)          | A `Not Equal` `0.0.0.0` (effectively non-empty) | ✅ Public                            | ✅                            |
-| `staging-web`   | `staging.afframe.com/api/version`      | HTTP 200                                        | ❌ Private — dashboard + alerts only | ✅                            |
-| `staging-api`   | `api.staging.afframe.com/api/health`   | HTTP 200, body contains `"status":"ok"`         | ❌ Private                           | ✅                            |
-| `staging-admin` | `admin.staging.afframe.com/api/health` | HTTP 200, body contains `"ok":true`             | ❌ Private                           | ✅                            |
+| `staging-web`   | `app-staging.afframe.com/api/version`  | HTTP 200                                        | ❌ Private — dashboard + alerts only | ✅                            |
+| `staging-api`   | `api-staging.afframe.com/api/health`   | HTTP 200, body contains `"status":"ok"`         | ❌ Private                           | ✅                            |
+| `staging-admin` | `admin-staging.afframe.com/api/health` | HTTP 200, body contains `"ok":true`             | ❌ Private                           | ✅                            |
 
 Production monitors are **paused** until production deploys to `app.afframe.com` /
 `api.afframe.com` / `admin.afframe.com`. Activating them before deploy would show "DOWN"

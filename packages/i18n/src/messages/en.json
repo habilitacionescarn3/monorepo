@@ -455,20 +455,27 @@
     }
   },
   "admin": {
-    "wordmark": "Admin",
     "auth": {
-      "returnLinkLabel": "Back to Afframe app",
-      "returnLinkHref": "https://app-staging.afframe.com",
       "statusLabel": "Status",
       "statusHref": "https://status.afframe.com",
       "aside": {
-        "headline": "Welcome back, accountant whisperer.",
-        "subtitle": "{brand} Admin: where the buttons are unstyled, the policies are FORCE RLS, and the only audit trail you read is your own.",
         "quote": {
-          "text": "It works on my machine ergo it works on staging ergo it works in production. QED.",
-          "author": "An optimist, moments before deploy",
-          "role": "Source: trust me bro"
+          "text": "If nobody is complaining, either everything works or the notification system doesn't.",
+          "author": "Source",
+          "role": "Support, after one bad Monday"
         }
+      },
+      "login": {
+        "email": {
+          "title": "Sign in to {brand} <admin>Admin</admin>",
+          "placeholder": "you@afframe.com"
+        },
+        "password": {
+          "description": "Enter your password to continue to {brand} Admin."
+        }
+      },
+      "forgot": {
+        "placeholder": "you@afframe.com"
       }
     }
   }
