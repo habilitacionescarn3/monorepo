@@ -27,7 +27,12 @@ import {
   OperatingSystemFamily,
   Secret as EcsSecret,
 } from "aws-cdk-lib/aws-ecs"
-import { ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam"
+import {
+  ManagedPolicy,
+  PolicyStatement,
+  Role,
+  ServicePrincipal,
+} from "aws-cdk-lib/aws-iam"
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs"
 import type { DatabaseInstance } from "aws-cdk-lib/aws-rds"
 import type { Bucket } from "aws-cdk-lib/aws-s3"
@@ -233,6 +238,22 @@ export class AppStack extends Stack {
     props.appBucket.grantReadWrite(taskRole)
     props.databaseSecret.grantRead(taskRole)
     props.appUserSecret.grantRead(taskRole)
+    // openfga-bootstrap init container writes the store + model IDs to SSM
+    // via PutParameter on /monorepo/${envName}/openfga/{store-id,model-id}.
+    // Scoped to those two parameter ARNs — the api/web/admin containers
+    // share this role but never touch SSM at runtime (they only read via
+    // EcsSecret.fromSsmParameter, which goes through the execution role's
+    // ssm:GetParameters, not this task role). Blast radius if compromised
+    // == garbage SSM that gets overwritten on the next deploy.
+    taskRole.addToPolicy(
+      new PolicyStatement({
+        actions: ["ssm:PutParameter"],
+        resources: [
+          `arn:aws:ssm:${this.region}:${this.account}:parameter/monorepo/${props.envName}/openfga/store-id`,
+          `arn:aws:ssm:${this.region}:${this.account}:parameter/monorepo/${props.envName}/openfga/model-id`,
+        ],
+      }),
+    )
 
     const taskDef = new FargateTaskDefinition(this, "TaskDef", {
       cpu: 512,
@@ -1162,34 +1183,121 @@ export class AppStack extends Stack {
       condition: ContainerDependencyCondition.SUCCESS,
     })
 
-    // Every essential container waits for BOTH init containers to exit
-    // success before starting. Listed explicitly so a future container
-    // additions remember to wire the dep — workflow-lint catches this
-    // via cdk-synth-strict if a dep is missed (no, it doesn't — but a
-    // single missing dep would only fail on first-ever deploy of a new
-    // env; the staging path is already idempotent).
-    for (const c of [
+    // openfga-bootstrap (init container): creates/reuses the OpenFGA store,
+    // writes the authorization model, and PutParameter's the resulting
+    // store-id + model-id to SSM. Replaces the manual bastion bootstrap
+    // step the runbook used to require — every env (including DR / new
+    // tenant infra) gets bootstrapped automatically on first deploy.
+    //
+    // Runs AFTER openfga-migrate so the openfga schema goose tables exist.
+    // The container image bundles the openfga binary + node + bootstrap.mjs;
+    // the init script boots openfga locally on 127.0.0.1:8080, polls
+    // /healthz, runs the bootstrap, writes SSM, then exits.
+    //
+    // Idempotent: store reused by name across re-runs; model_id is
+    // rewritten with same DSL content; SSM overwritten. api reads SSM at
+    // every cold start so it always picks up the latest model_id.
+    const openfgaBootstrapImage = new DockerImageAsset(
+      this,
+      "OpenfgaBootstrapImage",
+      {
+        directory: path.join(__dirname, "..", "..", ".."),
+        file: "infra/Dockerfile.openfga-bootstrap",
+        platform: Platform.LINUX_ARM64,
+      },
+    )
+
+    const openfgaBootstrapLogGroup = new LogGroup(
+      this,
+      "OpenfgaBootstrapLogs",
+      {
+        logGroupName: `/ecs/monorepo-${props.envName}/openfga-bootstrap`,
+        retention: RetentionDays.ONE_WEEK,
+        removalPolicy: RemovalPolicy.DESTROY,
+      },
+    )
+
+    const openfgaBootstrapContainer = taskDef.addContainer(
+      "openfga-bootstrap",
+      {
+        containerName: "openfga-bootstrap",
+        image: ContainerImage.fromDockerImageAsset(openfgaBootstrapImage),
+        essential: false,
+        // First-deploy bootstrap against a cold openfga schema + SSM writes
+        // can take ~10-15s. Lift the timeout in line with the other inits so
+        // dependsOn-SUCCESS doesn't trip on slow boots.
+        startTimeout: Duration.minutes(5),
+        logging: LogDriver.awsLogs({
+          streamPrefix: "openfga-bootstrap",
+          logGroup: openfgaBootstrapLogGroup,
+        }),
+        environment: {
+          MONOREPO_ENV: props.envName,
+          AWS_REGION: this.region,
+          DB_HOST: props.database.dbInstanceEndpointAddress,
+          DB_PORT: props.database.dbInstanceEndpointPort,
+          DB_NAME: "monorepo",
+        },
+        secrets: {
+          DB_ADMIN_USER: EcsSecret.fromSecretsManager(
+            props.databaseSecret,
+            "username",
+          ),
+          DB_ADMIN_PASSWORD: EcsSecret.fromSecretsManager(
+            props.databaseSecret,
+            "password",
+          ),
+        },
+        memoryReservationMiB: 128,
+        readonlyRootFilesystem: true,
+        linuxParameters: linuxParams("OpenfgaBootstrapLinuxParams"),
+      },
+    )
+    openfgaBootstrapContainer.addMountPoints({
+      containerPath: "/tmp",
+      sourceVolume: "tmp",
+      readOnly: false,
+    })
+
+    // openfga-bootstrap must run AFTER openfga-migrate so the openfga
+    // schema's goose tables (store, authorization_model, tuple, ...) exist.
+    openfgaBootstrapContainer.addContainerDependencies({
+      container: openfgaMigrateContainer,
+      condition: ContainerDependencyCondition.SUCCESS,
+    })
+
+    // Essential-container dependsOn wiring. Three init containers run in
+    // a strict chain: db-migrate → openfga-migrate → openfga-bootstrap.
+    // Essentials wait on the appropriate prefix:
+    //   - All essentials need db-migrate (creates app_user role, schemas).
+    //   - openfga + api need openfga-migrate (goose schema tables exist).
+    //   - api alone needs openfga-bootstrap (its SSM-sourced OPENFGA_STORE_ID
+    //     + OPENFGA_MODEL_ID must resolve to the freshly-written values,
+    //     not the previous deploy's snapshot or the seed placeholders).
+    const allEssentials = [
       pgbouncerContainer,
       cerbosContainer,
       openfgaContainer,
       apiContainer,
       webContainer,
       adminContainer,
-    ]) {
+    ]
+    for (const c of allEssentials) {
       c.addContainerDependencies({
         container: dbMigrateContainer,
         condition: ContainerDependencyCondition.SUCCESS,
       })
     }
-    // Only openfga + api need openfga-migrate completion specifically
-    // (the others don't touch the openfga schema), but adding the dep
-    // everywhere is harmless and keeps the wiring uniform.
     for (const c of [openfgaContainer, apiContainer]) {
       c.addContainerDependencies({
         container: openfgaMigrateContainer,
         condition: ContainerDependencyCondition.SUCCESS,
       })
     }
+    apiContainer.addContainerDependencies({
+      container: openfgaBootstrapContainer,
+      condition: ContainerDependencyCondition.SUCCESS,
+    })
 
     this.service = new FargateService(this, "Service", {
       cluster: this.cluster,
