@@ -89,6 +89,11 @@ describe("AppStack Fargate hardening", () => {
       (api?.Environment ?? []).map((e) => [e.Name, e.Value]),
     )
     expect(envByName["OPENFGA_API_URL"]).toBe("http://localhost:8080")
+    // PUBLIC_API_URL derives from envName: production -> api.afframe.com,
+    // anything else -> api-staging.afframe.com. Asserts the editor.ts
+    // redirect target is wired per-env (so staging /editor opens the
+    // staging spec, not prod). TEST_ENV_NAME="test", so expect staging.
+    expect(envByName["PUBLIC_API_URL"]).toBe("https://api-staging.afframe.com")
     const secretNames = (api?.Secrets ?? []).map((s) => s.Name)
     expect(secretNames).toContain("OPENFGA_STORE_ID")
     expect(secretNames).toContain("OPENFGA_MODEL_ID")
@@ -152,6 +157,11 @@ describe("AppStack Fargate hardening", () => {
     // LOCAL (PR #142) is the actual enforcement. Both web + admin
     // connect as app_user and must carry this flag.
     expect(envByName["DB_STARTUP_PROBE_LENIENT"]).toBe("1")
+    // BETTER_AUTH_COOKIE_DOMAIN derived from props.domain via
+    // `deriveCookieDomain`. For TEST_DOMAIN="test.example.com" the
+    // expected scope is `.example.com`. Asserts the cross-subdomain
+    // session-sharing wiring is intact on the web container.
+    expect(envByName["BETTER_AUTH_COOKIE_DOMAIN"]).toBe(".example.com")
     // AUTH_TOKEN_ENV must be explicitly mapped from envName so the
     // resolveAuthTokenEnv() fallback (NODE_ENV='production' -> 'prd')
     // does not stamp staging tokens with the production checksum code.
@@ -225,6 +235,12 @@ describe("AppStack Fargate hardening", () => {
     // Admin connects as app_user too and needs the lenient startup-probe
     // mode — RDS rejects ALTER ROLE SET for custom GUCs (AFF-150 §5).
     expect(envByName["DB_STARTUP_PROBE_LENIENT"]).toBe("1")
+    // BETTER_AUTH_COOKIE_DOMAIN derived from props.adminDomain (NOT
+    // props.domain). TEST_ADMIN_DOMAIN="admin-console.example.net" so
+    // the expected scope is `.example.net`. Asserts the admin container
+    // gets its OWN cookie scope (the two test domains are deliberately
+    // on different apex domains).
+    expect(envByName["BETTER_AUTH_COOKIE_DOMAIN"]).toBe(".example.net")
   })
 
   it("references the 4 workflow-managed secrets by FULL ARN (with random suffix)", () => {

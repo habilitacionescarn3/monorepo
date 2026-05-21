@@ -81,6 +81,24 @@ Role ARNs contain the account ID, so they are stored as secrets (single-account 
 | KMS CMKs                          | annual rotation enabled at key creation |
 | GitHub App private keys           | 12 months                               |
 | Cosign                            | n/a (keyless)                           |
+| Linear API key (CI write-back)    | annual                                  |
+
+The Anthropic API key provisioning steps (Ask AI on `docs.afframe.com`)
+were removed on 2026-05-21 alongside the rest of the `apps/docs` Ask AI
+work. If a future docs surface needs an Anthropic-backed feature,
+restore the procedure from
+`.context/archive/apps-docs-2026-05-21/`.
+
+## Linear API key (CI write-back)
+
+Phase D5 also provisions `LINEAR_API_KEY` for the future
+`linear-sync.yml` workflow (branch → ticket lookup + status update).
+Until that workflow ships, the key is unused; create it lazily.
+
+1. [Linear OAuth applications](https://linear.app/afframe/settings/api/applications)
+   → "Create personal API key", scope `read,write`.
+2. Store as a GitHub Actions repo secret named `LINEAR_API_KEY`.
+3. Rotate annually.
 
 ## Break-glass procedure
 
