@@ -15,9 +15,9 @@ export const registry: Record<string, ComponentMeta> = {
     source: "src/blocks/app-shell",
     sourceType: "custom",
     description:
-      "Block — placeholder home for the future app shell (top bar + left nav + page body + status + right drawer) used by apps/web/app/[orgSlug], apps/web/app/workspace, and (later) apps/admin. Currently exposes only ShellSkeleton (for loading.tsx) and ErrorShell (for error.tsx / not-found.tsx) — visible chrome is intentionally not implemented yet.",
+      "Block — plane-style app shell (header + left rail + sidebar + body + optional right assistant) used by apps/web/app/[orgSlug], apps/web/app/workspace, and (later) apps/admin. Outer surface uses bg-secondary; sidebar and body share a single rounded card split by an inner resizable handle; the assistant is a separate rounded card with a real gap. Geometry only — slots are provided by the consumer. Also exposes ShellSkeleton (loading.tsx) and ErrorShell (error.tsx / not-found.tsx).",
     categories: ["block", "layout", "app"],
-    dependencies: ["button", "skeleton"],
+    dependencies: ["button", "resizable", "skeleton"],
   },
   "auth-shell": {
     source: "src/blocks/auth-shell",

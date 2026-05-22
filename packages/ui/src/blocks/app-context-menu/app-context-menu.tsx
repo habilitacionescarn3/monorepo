@@ -25,12 +25,14 @@ import {
   formatAboutBlock,
   formatAskSidekick,
   formatCopyPath,
+  type AppConfig,
   type BugReportPayload,
   type BugReportType,
   type CapturedContext,
 } from "./lib/capture-context"
 
 export type {
+  AppConfig,
   BugReportPayload,
   BugReportType,
   CapturedContext,
@@ -55,6 +57,13 @@ export interface AppContextMenuProps {
   pathname: string
   user?: { id?: string; email?: string }
   orgSlug?: string
+  /**
+   * App identity passed into the clipboard formatters — controls the
+   * brand name in the Sidekick preamble, the repo name + working
+   * directory in the Copy-path payload, and the page-file resolver.
+   * Omit for sane generic defaults (no developer-machine paths leaked).
+   */
+  appConfig?: AppConfig
   /**
    * Submit a bug. Receives the full structured payload and should
    * return the created issue URL/identifier when known. Resolving
@@ -96,6 +105,7 @@ export function AppContextMenu({
   pathname,
   user,
   orgSlug,
+  appConfig,
   onReportBug,
   onAskSidekick,
   onAboutBlock,
@@ -149,21 +159,21 @@ export function AppContextMenu({
 
   async function handleAskSidekick() {
     const ctx = read()
-    const formatted = formatAskSidekick(ctx)
+    const formatted = formatAskSidekick(ctx, appConfig)
     if (onAskSidekick) onAskSidekick(ctx, formatted)
     else await copy(formatted)
   }
 
   async function handleAboutBlock() {
     const ctx = read()
-    const formatted = formatAboutBlock(ctx)
+    const formatted = formatAboutBlock(ctx, appConfig)
     if (onAboutBlock) onAboutBlock(ctx, formatted)
     else await copy(formatted)
   }
 
   async function handleCopyPath() {
     const ctx = read()
-    const formatted = formatCopyPath(ctx)
+    const formatted = formatCopyPath(ctx, appConfig)
     if (onCopyPath) onCopyPath(ctx, formatted)
     else await copy(formatted)
   }

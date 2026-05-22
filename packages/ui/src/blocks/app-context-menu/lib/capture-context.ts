@@ -349,28 +349,85 @@ function emptyElement(): ElementInfo {
 /* ── file inference ────────────────────────────────────────────────── */
 
 /**
- * Maps a URL pathname to its most likely Next.js page file under
- * `apps/web/app/`. Use the returned string as an agent hint, not a
- * guaranteed truth (route groups like `(default)` aren't always
- * inferable from URLs alone).
+ * Maps a URL pathname to its most likely Next.js page file. Default
+ * base path is `apps/web/app` (the apps/web router). Other apps should
+ * pass `appConfig.pageFileResolver` with their own resolver.
+ *
+ * Use the returned string as an agent hint, not a guaranteed truth
+ * (route groups like `(default)` aren't always inferable from URLs
+ * alone).
  */
-export function guessPageFile(pathname: string): string {
+export function guessPageFile(
+  pathname: string,
+  appBasePath = "apps/web/app",
+): string {
   if (pathname.startsWith("/auth/")) {
-    return `apps/web/app/auth/(default)${pathname.slice(5)}/page.tsx`
+    return `${appBasePath}/auth/(default)${pathname.slice(5)}/page.tsx`
   }
   if (pathname.startsWith("/workspace")) {
-    return `apps/web/app${pathname || "/workspace"}/page.tsx`
+    return `${appBasePath}${pathname || "/workspace"}/page.tsx`
   }
   if (pathname.startsWith("/onboarding")) {
-    return `apps/web/app${pathname}/page.tsx`
+    return `${appBasePath}${pathname}/page.tsx`
   }
   if (pathname.startsWith("/api/")) {
-    return `apps/web/app${pathname}/route.ts`
+    return `${appBasePath}${pathname}/route.ts`
   }
   const parts = pathname.split("/").filter(Boolean)
-  if (parts.length === 0) return "apps/web/app/page.tsx"
-  if (parts.length === 1) return "apps/web/app/[orgSlug]/page.tsx"
-  return `apps/web/app/[orgSlug]/${parts.slice(1).join("/")}/page.tsx`
+  if (parts.length === 0) return `${appBasePath}/page.tsx`
+  if (parts.length === 1) return `${appBasePath}/[orgSlug]/page.tsx`
+  return `${appBasePath}/[orgSlug]/${parts.slice(1).join("/")}/page.tsx`
+}
+
+/* ── app config (consumer-supplied) ────────────────────────────────── */
+
+/**
+ * Consumer-supplied identity used by the clipboard formatters. Every
+ * field is optional — defaults produce generic copy ("the app", repo:
+ * null, etc) so the block can be dropped into any app without leaking
+ * Afframe-specific strings or developer-machine paths.
+ */
+export interface AppConfig {
+  /** App brand name, used in payload preambles. Defaults to "the app". */
+  appName?: string
+  /** Display name of the repo for "Copy path" payload. */
+  repoName?: string
+  /**
+   * Absolute working directory of the repo for "Copy path" payload —
+   * agent uses this to know where to run `cd`. Omit if unknown; the
+   * agent will ask. Never hardcode a developer's machine path.
+   */
+  workingDirectory?: string
+  /** Framework label for "Copy path" payload (e.g. "Next.js + Turborepo"). */
+  framework?: string
+  /** Override for the page-file inference used in "Copy path" payload. */
+  pageFileResolver?: (pathname: string) => string
+}
+
+const DEFAULT_CONFIG: Required<
+  Omit<AppConfig, "workingDirectory" | "framework" | "pageFileResolver">
+> & {
+  workingDirectory: string | null
+  framework: string | null
+  pageFileResolver: (pathname: string) => string
+} = {
+  appName: "the app",
+  repoName: "this repo",
+  workingDirectory: null,
+  framework: null,
+  pageFileResolver: guessPageFile,
+}
+
+function resolveConfig(config: AppConfig | undefined): typeof DEFAULT_CONFIG {
+  return {
+    appName: config?.appName ?? DEFAULT_CONFIG.appName,
+    repoName: config?.repoName ?? DEFAULT_CONFIG.repoName,
+    workingDirectory:
+      config?.workingDirectory ?? DEFAULT_CONFIG.workingDirectory,
+    framework: config?.framework ?? DEFAULT_CONFIG.framework,
+    pageFileResolver:
+      config?.pageFileResolver ?? DEFAULT_CONFIG.pageFileResolver,
+  }
 }
 
 /* ── payload formatters ────────────────────────────────────────────── */
@@ -383,10 +440,10 @@ type SidekickPayload = CapturedContext & {
 type AgentPayload = CapturedContext & {
   kind: "agent.copy_path"
   repo: {
-    name: string
+    name: string | null
     branch: string | null
-    working_directory: string
-    framework: string
+    working_directory: string | null
+    framework: string | null
   }
   likely_file: string
   task: string
@@ -433,14 +490,18 @@ export interface BugReportPayload extends CapturedContext {
  * by a fenced JSON block so the AI assistant (Claude, Cursor, etc) can
  * both read the framing and parse the structured context.
  */
-export function formatAskSidekick(ctx: CapturedContext): string {
+export function formatAskSidekick(
+  ctx: CapturedContext,
+  config?: AppConfig,
+): string {
+  const { appName } = resolveConfig(config)
   const payload: SidekickPayload = {
     ...ctx,
     kind: "sidekick.ask",
     user_question: "",
   }
   return [
-    "You are Sidekick, the in-app assistant for the Afframe accounting platform.",
+    `You are Sidekick, the in-app assistant for ${appName}.`,
     "The user right-clicked on a specific element and copied this context to ask you a question.",
     "Use the JSON below as ground truth for what they were looking at.",
     "",
@@ -459,7 +520,10 @@ export function formatAskSidekick(ctx: CapturedContext): string {
  * help center deep-link in a new window; for now it lands on the
  * clipboard ready to paste into any docs search.
  */
-export function formatAboutBlock(ctx: CapturedContext): string {
+export function formatAboutBlock(
+  ctx: CapturedContext,
+  _config?: AppConfig,
+): string {
   const query = inferDocsQuery(ctx)
   const payload: DocsSearchPayload = {
     ...ctx,
@@ -482,22 +546,26 @@ export function formatAboutBlock(ctx: CapturedContext): string {
  * a coding agent (Claude Code, Cursor, etc) so it knows exactly what
  * the user was looking at and can act in the repo immediately.
  */
-export function formatCopyPath(ctx: CapturedContext): string {
+export function formatCopyPath(
+  ctx: CapturedContext,
+  config?: AppConfig,
+): string {
+  const { repoName, workingDirectory, framework, pageFileResolver } =
+    resolveConfig(config)
   const payload: AgentPayload = {
     ...ctx,
     kind: "agent.copy_path",
     repo: {
-      name: "monorepo",
+      name: repoName,
       branch: null,
-      working_directory:
-        "/Users/hleb/Developer/Conductor/workspaces/monorepo/davis",
-      framework: "Next.js 16 (App Router) + Turborepo + pnpm workspaces",
+      working_directory: workingDirectory,
+      framework,
     },
-    likely_file: guessPageFile(ctx.page.pathname),
+    likely_file: pageFileResolver(ctx.page.pathname),
     task: "",
   }
   return [
-    "You are a coding agent working in the Afframe monorepo.",
+    `You are a coding agent working in the ${repoName} repo.`,
     "The user right-clicked on a specific UI element and copied this context.",
     "Their task description is empty — ask the user what they want before editing files.",
     "",
@@ -542,7 +610,7 @@ function inferDocsQuery(ctx: CapturedContext): string {
     ctx.element.data_slot ??
     ctx.element.role ??
     ctx.element.tag ??
-    "afframe app"
+    "app"
   )
 }
 

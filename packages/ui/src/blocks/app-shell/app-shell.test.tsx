@@ -1,8 +1,71 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, it, expect } from "vitest"
 
+import { AppShell } from "./app-shell"
 import { ShellSkeleton } from "./skeletons/shell-skeleton"
 import { ErrorShell } from "./skeletons/error-shell"
+
+describe("AppShell", () => {
+  it("renders rail, sidebar, body, and (closed) assistant by default", () => {
+    const { container } = render(
+      <AppShell
+        rail={<div data-testid="rail" />}
+        sidebar={<div data-testid="sidebar" />}
+        assistant={<div data-testid="assistant" />}
+      >
+        <div data-testid="body" />
+      </AppShell>,
+    )
+    expect(container.querySelector("[data-slot='app-shell']")).toBeTruthy()
+    expect(container.querySelector("[data-slot='app-shell-rail']")).toBeTruthy()
+    expect(
+      container.querySelector("[data-slot='app-shell-sidebar']"),
+    ).toBeTruthy()
+    expect(container.querySelector("[data-slot='app-shell-main']")).toBeTruthy()
+    expect(screen.getByTestId("body")).toBeInTheDocument()
+    expect(
+      container.querySelector("[data-slot='app-shell-assistant']"),
+    ).toBeNull()
+  })
+
+  it("toggles the assistant panel on button click", () => {
+    const { container } = render(
+      <AppShell sidebar={<div />} assistant={<div data-testid="assistant" />}>
+        <div />
+      </AppShell>,
+    )
+    expect(
+      container.querySelector("[data-slot='app-shell-assistant']"),
+    ).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: /open assistant/i }))
+    expect(
+      container.querySelector("[data-slot='app-shell-assistant']"),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: /close assistant/i }))
+    expect(
+      container.querySelector("[data-slot='app-shell-assistant']"),
+    ).toBeNull()
+  })
+
+  it("collapses and reopens the sidebar via the toggle", () => {
+    render(
+      <AppShell sidebar={<div data-testid="sidebar" />}>
+        <div />
+      </AppShell>,
+    )
+    expect(
+      screen.getByRole("button", { name: /collapse sidebar/i }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }))
+    expect(
+      screen.getByRole("button", { name: /open sidebar/i }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /open sidebar/i }))
+    expect(
+      screen.getByRole("button", { name: /collapse sidebar/i }),
+    ).toBeInTheDocument()
+  })
+})
 
 describe("ShellSkeleton", () => {
   it("renders the skeleton root", () => {

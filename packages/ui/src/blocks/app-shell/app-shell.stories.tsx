@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
+import { AppShell } from "./app-shell"
 import { ShellSkeleton } from "./skeletons/shell-skeleton"
 import { ErrorShell } from "./skeletons/error-shell"
 
@@ -11,6 +12,55 @@ export default meta
 
 type SkeletonStory = StoryObj<typeof ShellSkeleton>
 type ErrorStory = StoryObj<typeof ErrorShell>
+type ShellStory = StoryObj<typeof AppShell>
+
+const RailPlaceholder = () => (
+  <div className="size-full" data-testid="rail-placeholder" />
+)
+const HeaderPlaceholder = () => (
+  <div className="size-full" data-testid="header-placeholder" />
+)
+const SidebarPlaceholder = () => (
+  <div className="size-full" data-testid="sidebar-placeholder" />
+)
+const AssistantPlaceholder = () => (
+  <div className="size-full" data-testid="assistant-placeholder" />
+)
+
+export const Shell: ShellStory = {
+  render: () => (
+    <AppShell
+      header={<HeaderPlaceholder />}
+      rail={<RailPlaceholder />}
+      sidebar={<SidebarPlaceholder />}
+      assistant={<AssistantPlaceholder />}
+    />
+  ),
+}
+
+export const ShellAssistantOpen: ShellStory = {
+  render: () => (
+    <AppShell
+      header={<HeaderPlaceholder />}
+      rail={<RailPlaceholder />}
+      sidebar={<SidebarPlaceholder />}
+      assistant={<AssistantPlaceholder />}
+      defaultAssistantOpen
+    />
+  ),
+}
+
+export const ShellSidebarCollapsed: ShellStory = {
+  render: () => (
+    <AppShell
+      header={<HeaderPlaceholder />}
+      rail={<RailPlaceholder />}
+      sidebar={<SidebarPlaceholder />}
+      assistant={<AssistantPlaceholder />}
+      defaultSidebarOpen={false}
+    />
+  ),
+}
 
 export const Skeleton: SkeletonStory = {
   render: () => <ShellSkeleton />,
