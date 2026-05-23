@@ -182,7 +182,7 @@ export function AppShell({
       {rail !== undefined && (
         <aside
           data-slot="app-shell-rail"
-          className="absolute top-0 bottom-[var(--shell-bottom-inset)] left-0 flex w-[var(--shell-rail-width)] flex-col"
+          className="absolute top-0 bottom-[var(--shell-bottom-inset)] left-0 flex w-[var(--shell-rail-width)] flex-col transition-[width] duration-200 ease-in-out"
         >
           <div
             data-slot="app-shell-logomark"
@@ -204,13 +204,13 @@ export function AppShell({
       {header && (
         <header
           data-slot="app-shell-header"
-          className="absolute top-0 right-[var(--shell-right-inset)] left-[var(--shell-rail-width)] h-[var(--shell-header-height)] overflow-hidden"
+          className="absolute top-0 right-[var(--shell-right-inset)] left-[var(--shell-rail-width)] h-[var(--shell-header-height)] overflow-hidden transition-[left] duration-200 ease-in-out"
         >
           {header}
         </header>
       )}
 
-      <div className="absolute top-[var(--shell-header-height)] right-[var(--shell-right-inset)] bottom-[var(--shell-bottom-inset)] left-[var(--shell-rail-width)]">
+      <div className="absolute top-[var(--shell-header-height)] right-[var(--shell-right-inset)] bottom-[var(--shell-bottom-inset)] left-[var(--shell-rail-width)] transition-[left] duration-200 ease-in-out">
         <ResizablePanelGroup orientation="horizontal">
           <ResizablePanel minSize={SIZES.mainMin}>
             <div

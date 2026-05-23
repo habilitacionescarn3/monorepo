@@ -19,6 +19,14 @@ export const registry: Record<string, ComponentMeta> = {
     categories: ["block", "layout", "app"],
     dependencies: ["button", "resizable", "skeleton"],
   },
+  "app-rail": {
+    source: "src/blocks/app-rail",
+    sourceType: "custom",
+    description:
+      "Block — navigation list for the AppShell rail slot. Renders icon+label items in two modes (expanded / icon-only) toggled via right-click ContextMenu (RadioGroup). Mode persisted to localStorage. Writes `--shell-rail-width` on document root so AppShell rail/header/content animate width when mode changes.",
+    categories: ["block", "navigation", "app"],
+    dependencies: ["context-menu"],
+  },
   "auth-shell": {
     source: "src/blocks/auth-shell",
     sourceType: "custom",
