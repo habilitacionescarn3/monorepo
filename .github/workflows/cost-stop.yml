@@ -1,0 +1,100 @@
+name: cost-stop
+
+# Manually scale an environment to zero compute cost (or resume it).
+#
+# Stops/starts the ECS Fargate service + RDS DB instance for one or both
+# environments. Used to halt cost burn while the architecture is being
+# rightsized. Idempotent: re-running with the same action is a no-op.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "stop = scale to zero, resume = bring back online"
+        required: true
+        default: stop
+        type: choice
+        options:
+          - stop
+          - resume
+      environment:
+        description: "Target environment"
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+          - all
+
+permissions: {}
+
+env:
+  AWS_REGION: eu-central-1
+
+jobs:
+  staging:
+    if: inputs.environment == 'staging' || inputs.environment == 'all'
+    name: ${{ inputs.action }} staging
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2.19.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Mask role ARN
+        env:
+          ROLE: ${{ secrets.AWS_DEPLOY_ROLE_ARN_STAGING }}
+        run: |
+          if [ -n "$ROLE" ]; then echo "::add-mask::$ROLE"; fi
+
+      - uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885 # v6.1.1
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN_STAGING }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: cost-${{ inputs.action }}-staging-${{ github.run_id }}
+          audience: sts.amazonaws.com
+          role-duration-seconds: 900
+
+      - name: Run cost-${{ inputs.action }} on staging
+        run: bash scripts/cost-${{ inputs.action }}.sh staging
+
+  production:
+    if: inputs.environment == 'production' || inputs.environment == 'all'
+    name: ${{ inputs.action }} production
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2.19.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Mask role ARN
+        env:
+          ROLE: ${{ secrets.AWS_DEPLOY_ROLE_ARN_PRODUCTION }}
+        run: |
+          if [ -n "$ROLE" ]; then echo "::add-mask::$ROLE"; fi
+
+      - uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885 # v6.1.1
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN_PRODUCTION }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: cost-${{ inputs.action }}-production-${{ github.run_id }}
+          audience: sts.amazonaws.com
+          role-duration-seconds: 900
+
+      - name: Run cost-${{ inputs.action }} on production
+        run: bash scripts/cost-${{ inputs.action }}.sh production
