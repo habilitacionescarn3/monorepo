@@ -1,17 +1,8 @@
 import { AppRail } from "@workspace/ui/blocks/app-rail"
+import type { RailItem } from "@workspace/ui/blocks/app-rail"
 import { AppShell } from "@workspace/ui/blocks/app-shell"
-import {
-  BarChart3,
-  BookOpenText,
-  Briefcase,
-  Building2,
-  FolderOpen,
-  Home,
-  ListChecksIcon,
-  PiggyBank,
-  Settings,
-  Users,
-} from "@workspace/ui/lib/icons"
+
+import { IconPackSwitcher } from "../_components/icon-pack-switcher"
 
 export const metadata = {
   title: "Dashboard",
@@ -23,68 +14,71 @@ export default async function OrgDashboardPage({
   params: Promise<{ orgSlug: string }>
 }) {
   const { orgSlug } = await params
-  const items = [
+  // Icons travel as `iconName` strings — AppRail (client) resolves
+  // them via `useIcons()` from the active IconProvider pack. Lets the
+  // user swap icon packs at runtime without touching this server page.
+  const items: RailItem[] = [
     {
       key: "home",
       label: "Home",
-      icon: <Home className="size-5" />,
+      iconName: "Home",
       href: `/${orgSlug}`,
       active: true,
     },
     {
       key: "journals",
       label: "Journals",
-      icon: <BookOpenText className="size-5" />,
+      iconName: "BookOpenText",
       href: `/${orgSlug}/journals`,
     },
     {
       key: "documents",
       label: "Documents",
-      icon: <FolderOpen className="size-5" />,
+      iconName: "FolderOpen",
       href: `/${orgSlug}/documents`,
     },
     {
       key: "finance",
       label: "Finance",
-      icon: <PiggyBank className="size-5" />,
+      iconName: "PiggyBank",
       href: `/${orgSlug}/finance`,
     },
     {
       key: "hr",
       label: "HR",
-      icon: <Users className="size-5" />,
+      iconName: "Users",
       href: `/${orgSlug}/hr`,
     },
     {
       key: "assets",
       label: "Assets",
-      icon: <Briefcase className="size-5" />,
+      iconName: "Briefcase",
       href: `/${orgSlug}/assets`,
       separatorAfter: true,
     },
     {
       key: "closing",
       label: "Closing",
-      icon: <ListChecksIcon className="size-5" />,
+      iconName: "ListChecksIcon",
       href: `/${orgSlug}/closing`,
     },
     {
       key: "reports",
       label: "Reports",
-      icon: <BarChart3 className="size-5" />,
+      iconName: "BarChart3",
       href: `/${orgSlug}/reports`,
       separatorAfter: true,
     },
     {
       key: "directory",
       label: "Directory",
-      icon: <Building2 className="size-5" />,
+      iconName: "Building2",
       href: `/${orgSlug}/directory`,
     },
     {
       key: "settings",
       label: "Settings",
-      icon: <Settings className="size-5" />,
+      iconName: "Settings",
       href: `/${orgSlug}/settings`,
     },
   ]
@@ -96,7 +90,7 @@ export default async function OrgDashboardPage({
       assistant={<div className="size-full" />}
       logoHref={`/${orgSlug}`}
     >
-      <div className="size-full" />
+      <IconPackSwitcher />
     </AppShell>
   )
 }
