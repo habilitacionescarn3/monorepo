@@ -138,6 +138,7 @@ import {
   Swatches,
   Target,
   BookOpenUser,
+  Question,
 } from "@phosphor-icons/react"
 
 import type { IconMap } from "../types"
@@ -296,4 +297,5 @@ export const phosphorIcons = {
   IdCard: IdentificationCard,
   SwatchBook: Swatches,
   BookUser: BookOpenUser,
+  CircleHelp: Question,
 } satisfies IconMap

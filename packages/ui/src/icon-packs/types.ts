@@ -169,6 +169,7 @@ export const ICON_NAMES = [
   "IdCard",
   "SwatchBook",
   "BookUser",
+  "CircleHelp",
 ] as const
 
 export type IconName = (typeof ICON_NAMES)[number]

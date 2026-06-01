@@ -19,6 +19,14 @@ export const registry: Record<string, ComponentMeta> = {
     categories: ["block", "layout", "app"],
     dependencies: ["button", "resizable", "skeleton"],
   },
+  "app-header": {
+    source: "src/blocks/app-header",
+    sourceType: "custom",
+    description:
+      "Block — top bar for the AppShell header slot. Centered search input; right-aligned controls (inbox, tasks, help, settings) each a ghost icon button, with count badges on inbox/tasks, plus an account avatar; left side empty. Icons resolve from the active IconProvider pack.",
+    categories: ["block", "navigation", "app"],
+    dependencies: ["avatar", "button", "input"],
+  },
   "app-rail": {
     source: "src/blocks/app-rail",
     sourceType: "custom",

@@ -1,3 +1,4 @@
+import { AppHeader } from "@workspace/ui/blocks/app-header"
 import { AppRail } from "@workspace/ui/blocks/app-rail"
 import type { RailItem } from "@workspace/ui/blocks/app-rail"
 import { AppShell } from "@workspace/ui/blocks/app-shell"
@@ -87,7 +88,7 @@ export default async function OrgDashboardPage({
   ]
   return (
     <AppShell
-      header={<div className="size-full" />}
+      header={<AppHeader inboxCount={3} taskCount={12} userName={orgSlug} />}
       rail={<AppRail items={items} />}
       sidebar={<div className="size-full" />}
       assistant={<div className="size-full" />}
