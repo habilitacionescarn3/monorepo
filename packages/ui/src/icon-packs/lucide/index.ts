@@ -141,6 +141,14 @@ import {
   XCircle,
   XCircleIcon,
   XIcon,
+  BriefcaseBusiness,
+  CalendarClock,
+  ChartNoAxesCombined,
+  FolderBookmark,
+  Goal,
+  IdCard,
+  SwatchBook,
+  BookUser,
 } from "lucide-react"
 
 import type { IconMap } from "../types"
@@ -296,4 +304,12 @@ export const lucideIcons = {
   XCircle,
   XCircleIcon,
   XIcon,
+  BriefcaseBusiness,
+  CalendarClock,
+  ChartNoAxesCombined,
+  FolderBookmark,
+  Goal,
+  IdCard,
+  SwatchBook,
+  BookUser,
 } satisfies IconMap

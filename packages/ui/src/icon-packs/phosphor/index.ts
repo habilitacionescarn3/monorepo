@@ -132,6 +132,12 @@ import {
   WifiHigh,
   X,
   XCircle,
+  ChartLineUp,
+  Folder,
+  IdentificationCard,
+  Swatches,
+  Target,
+  BookOpenUser,
 } from "@phosphor-icons/react"
 
 import type { IconMap } from "../types"
@@ -281,4 +287,13 @@ export const phosphorIcons = {
   XCircle,
   XCircleIcon: XCircle,
   XIcon: X,
+  // Rail nav additions — nearest Phosphor silhouettes.
+  BriefcaseBusiness: Briefcase,
+  CalendarClock: Calendar, // no calendar-clock variant
+  ChartNoAxesCombined: ChartLineUp,
+  FolderBookmark: Folder, // no folder-bookmark variant
+  Goal: Target,
+  IdCard: IdentificationCard,
+  SwatchBook: Swatches,
+  BookUser: BookOpenUser,
 } satisfies IconMap

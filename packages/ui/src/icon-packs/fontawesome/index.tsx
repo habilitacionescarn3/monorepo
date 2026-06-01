@@ -125,6 +125,13 @@ import {
   faWandMagicSparkles,
   faWifi,
   faXmark,
+  faBullseye,
+  faCalendarDays,
+  faChartLine,
+  faFolder,
+  faIdCard,
+  faSwatchbook,
+  faAddressBook,
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import * as React from "react"
@@ -300,4 +307,13 @@ export const fontawesomeIcons = {
   XCircle: wrap(faCircleXmark),
   XCircleIcon: wrap(faCircleXmark),
   XIcon: wrap(faXmark),
+  // Rail nav additions — nearest Font Awesome free-solid glyphs.
+  BriefcaseBusiness: wrap(faBriefcase),
+  CalendarClock: wrap(faCalendarDays), // no calendar-clock; days is closest
+  ChartNoAxesCombined: wrap(faChartLine),
+  FolderBookmark: wrap(faFolder), // no folder-bookmark variant
+  Goal: wrap(faBullseye),
+  IdCard: wrap(faIdCard),
+  SwatchBook: wrap(faSwatchbook),
+  BookUser: wrap(faAddressBook),
 } satisfies IconMap

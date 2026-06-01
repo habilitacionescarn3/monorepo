@@ -161,6 +161,14 @@ export const ICON_NAMES = [
   "XCircle",
   "XCircleIcon",
   "XIcon",
+  "BriefcaseBusiness",
+  "CalendarClock",
+  "ChartNoAxesCombined",
+  "FolderBookmark",
+  "Goal",
+  "IdCard",
+  "SwatchBook",
+  "BookUser",
 ] as const
 
 export type IconName = (typeof ICON_NAMES)[number]
