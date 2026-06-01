@@ -264,7 +264,7 @@ export function AppShell({
                       }
                       onClick={toggleSidebar}
                     >
-                      <PanelLeftIcon className="size-4" />
+                      <PanelLeftIcon className="size-4 text-[#4E5255]" />
                     </Button>
                   </div>
                 )}
@@ -279,7 +279,7 @@ export function AppShell({
                       }
                       onClick={() => setAssistantOpen((s) => !s)}
                     >
-                      <PanelRight className="size-4" />
+                      <PanelRight className="size-4 text-[#4E5255]" />
                     </Button>
                   </div>
                 )}

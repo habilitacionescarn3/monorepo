@@ -44,13 +44,15 @@ describe("AppRail", () => {
     expect(screen.getByTestId("icon-accounting")).toBeInTheDocument()
   })
 
-  it("hides labels in icon-only mode (uses title attribute instead)", () => {
+  it("hides labels in icon-only mode (label surfaced via right-side tooltip)", () => {
     render(<AppRail items={items} defaultMode="icon-only" />)
+    // Visible label text is gone; the name lives in the (closed) tooltip
+    // + the trigger's aria-label. No native `title` anymore.
     expect(screen.queryByText("Accounting")).not.toBeInTheDocument()
     const link = screen
       .getByTestId("icon-accounting")
       .closest("a") as HTMLAnchorElement
-    expect(link).toHaveAttribute("title", "Accounting")
+    expect(link).not.toHaveAttribute("title")
     expect(link).toHaveAttribute("aria-label", "Accounting")
   })
 

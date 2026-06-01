@@ -9,6 +9,12 @@ import {
   ContextMenuRadioItem,
   ContextMenuTrigger,
 } from "@workspace/ui/components/context-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip"
 import { useIcons } from "@workspace/ui/icon-packs"
 import type { IconName } from "@workspace/ui/icon-packs"
 import { cn } from "@workspace/ui/lib/utils"
@@ -33,6 +39,10 @@ export interface RailItem {
    */
   iconName?: IconName
   icon?: React.ReactNode
+  /** Override the icon size class (default `size-5` = 20px). */
+  iconClassName?: string
+  /** Extra classes for the label span (e.g. a smaller `text-[10px]`). */
+  labelClassName?: string
   /** Href for the underlying `<a>`. Defaults to `#`. */
   href?: string
   /** Adds active styling (filled wrap, black icon). */
@@ -102,40 +112,45 @@ export function AppRail({
   }, [mode, expandedWidth, collapsedWidth, storageKey])
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <nav
-          data-slot="app-rail"
-          data-mode={mode}
-          // Stop the global AppContextMenu from also firing.
-          onContextMenu={(e) => e.stopPropagation()}
-          className={cn(
-            "flex h-full flex-col items-center overflow-x-hidden overflow-y-auto pt-3.5 pb-2",
-            className,
-          )}
-        >
-          {items.map((item) => (
-            <React.Fragment key={item.key}>
-              <RailNavItem item={item} mode={mode} />
-              {item.separatorAfter && <RailSeparator />}
-            </React.Fragment>
-          ))}
-        </nav>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-44">
-        <ContextMenuRadioGroup
-          value={mode}
-          onValueChange={(v) => setMode(v as RailMode)}
-        >
-          <ContextMenuRadioItem value="expanded">
-            Show labels
-          </ContextMenuRadioItem>
-          <ContextMenuRadioItem value="icon-only">
-            Icons only
-          </ContextMenuRadioItem>
-        </ContextMenuRadioGroup>
-      </ContextMenuContent>
-    </ContextMenu>
+    <TooltipProvider delayDuration={200}>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <nav
+            data-slot="app-rail"
+            data-mode={mode}
+            // Stop the global AppContextMenu from also firing.
+            onContextMenu={(e) => e.stopPropagation()}
+            className={cn(
+              // pt-4 = 16px above the first item (14px base + 2px extra).
+              "flex h-full flex-col items-center overflow-x-hidden overflow-y-auto pt-4 pb-2",
+              // Inter-item gap: 12px with labels, 8px icon-only.
+              "data-[mode=expanded]:gap-y-3 data-[mode=icon-only]:gap-y-2",
+              className,
+            )}
+          >
+            {items.map((item) => (
+              <React.Fragment key={item.key}>
+                <RailNavItem item={item} mode={mode} />
+                {item.separatorAfter && <RailSeparator />}
+              </React.Fragment>
+            ))}
+          </nav>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-44">
+          <ContextMenuRadioGroup
+            value={mode}
+            onValueChange={(v) => setMode(v as RailMode)}
+          >
+            <ContextMenuRadioItem value="expanded">
+              Show labels
+            </ContextMenuRadioItem>
+            <ContextMenuRadioItem value="icon-only">
+              Icons only
+            </ContextMenuRadioItem>
+          </ContextMenuRadioGroup>
+        </ContextMenuContent>
+      </ContextMenu>
+    </TooltipProvider>
   )
 }
 
@@ -143,38 +158,61 @@ function RailNavItem({ item, mode }: { item: RailItem; mode: RailMode }) {
   const icons = useIcons()
   const PackIcon = item.iconName ? icons[item.iconName] : null
   const iconNode =
-    item.icon ?? (PackIcon ? <PackIcon className="size-5" /> : null)
+    item.icon ??
+    (PackIcon ? <PackIcon className={item.iconClassName ?? "size-5"} /> : null)
+
+  const iconWrap = (
+    <span
+      className={cn(
+        "flex size-8 items-center justify-center rounded-sm",
+        // Icon color: idle + hover #808689, selected #1E1F20.
+        // Label color (idle #676C6F, hover/active #4E5255) is on the
+        // label span below.
+        "text-[#808689] group-data-[active]:text-[#1E1F20]",
+        "group-hover:bg-[#E3E5E5]",
+        "group-data-[active]:bg-[#CDCECE]",
+      )}
+    >
+      {iconNode}
+    </span>
+  )
 
   return (
     <a
       href={item.href ?? "#"}
-      title={mode === "icon-only" ? item.label : undefined}
-      aria-label={mode === "icon-only" ? item.label : undefined}
+      aria-label={item.label}
       data-active={item.active || undefined}
-      className={cn(
-        // The item BBOX is just the icon wrap. Label is absolute below
-        // so it doesn't contribute to flex height — keeps icon-to-icon
-        // gap clean: mb-3.5 (14) + mt-3.5 (14) = 28px between icons.
-        // First item overridden to 0 so it sits 14px below the
-        // logomark (nav's pt-3.5).
-        "group relative flex w-full flex-col items-center [&:first-child]:mt-0",
-        "mt-3.5 mb-3.5",
-      )}
+      // In-flow stack: icon + label as one unit (gap-1 = 4px). Inter-item
+      // spacing comes from the nav's mode-aware gap-y, so the label lives
+      // inside the item bbox — separators land in the visible gap below.
+      className="group flex w-full flex-col items-center gap-1"
     >
-      <span
-        className={cn(
-          "flex size-8 items-center justify-center rounded-sm",
-          // Icon color: idle gray, black when active.
-          // Text color (`#4E5255`) is set separately on the label span.
-          "text-[#808689] group-data-[active]:text-black",
-          "group-hover:bg-[#E3E5E5]",
-          "group-data-[active]:bg-[#CDCECE]",
-        )}
-      >
-        {iconNode}
-      </span>
+      {mode === "icon-only" ? (
+        // Tooltip anchored to the icon WRAPPER (not the full-width link),
+        // so it opens right after the 32px tile — not the rail edge.
+        <Tooltip>
+          <TooltipTrigger asChild>{iconWrap}</TooltipTrigger>
+          {/* Negative offset: Radix adds a ~10px baseline, so this lands
+              the bubble right beside the 32px icon tile (not the rail edge). */}
+          <TooltipContent side="right" sideOffset={-4}>
+            {item.label}
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        iconWrap
+      )}
       {mode === "expanded" && (
-        <span className="absolute inset-x-0 top-full mt-0.5 text-center text-[11px] leading-tight font-semibold text-[#4E5255]">
+        // Inter Medium 11px, centered, in-flow. `truncate` (overflow-hidden
+        // + ellipsis + nowrap) cuts overflow against the rail width — e.g.
+        // "Documents" → "Docume…" — no hardcoded char cap. Idle #676C6F;
+        // hover + active #4E5255.
+        <span
+          className={cn(
+            "w-full truncate px-0.5 text-center leading-tight font-medium tracking-[-0.01em] text-[#676C6F] group-hover:text-[#4E5255] group-data-[active]:text-[#4E5255]",
+            // Size last so a per-item override (e.g. "text-[10px]") wins.
+            item.labelClassName ?? "text-[11px]",
+          )}
+        >
           {item.label}
         </span>
       )}
@@ -191,13 +229,12 @@ function RailSeparator() {
     <div
       role="separator"
       aria-orientation="horizontal"
-      // Negative `-my-[1.5px]` cancels the 3px hit-box height in flex
-      // layout (3 + -3 = 0 effective). The separator sits visually
-      // centered in the existing 28px gap between items, not adding
-      // to it.
-      className="-my-[1.5px] flex h-[3px] w-[30px] items-center justify-center"
+      // In-flow 30px hairline. The nav's gap-y spaces it from the items
+      // above and below, so it sits visible in the gap — not collapsed to
+      // 0 height nor hidden behind an absolutely-positioned label.
+      className="flex h-[3px] w-[30px] items-center justify-center"
     >
-      <div className="h-px w-full bg-[#4E5255]" />
+      <div className="h-px w-full bg-[#DADCDD]" />
     </div>
   )
 }
