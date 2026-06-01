@@ -8,6 +8,8 @@ import {
   type BugReportPayload,
 } from "@workspace/ui/blocks/app-context-menu"
 
+import { reportFeedback } from "./report-feedback"
+
 interface AppContextMenuClientProps {
   children: React.ReactNode
   orgSlug?: string
@@ -17,9 +19,9 @@ interface AppContextMenuClientProps {
 /**
  * Client wrapper around `@workspace/ui/blocks/app-context-menu`. Reads
  * the current pathname via Next's router and wires the Report-bug
- * action to the `/api/feedback/bug` route handler (which posts to
- * Linear). Other menu items fall back to their default clipboard
- * behavior implemented inside the UI block.
+ * action to the `reportFeedback` server action, which forwards to the
+ * canonical `POST /v1/feedback` on apps/api. Other menu items fall back
+ * to their default clipboard behavior implemented inside the UI block.
  */
 export function AppContextMenuClient({
   children,
@@ -29,45 +31,13 @@ export function AppContextMenuClient({
   const pathname = usePathname()
 
   const onReportBug = useCallback(async (payload: BugReportPayload) => {
-    // Throws on failure so the BugReportDialog's submit-state machine
-    // can flip to "error" and keep itself open; success path returns
-    // the issue id/url for the dialog's optional use.
-    const res = await fetch("/api/feedback/bug", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-    if (res.status === 503) {
-      throw new Error(
-        "Bug reports are not wired up yet — set LINEAR_API_KEY in the server env.",
-      )
-    }
-    if (!res.ok) {
-      let detail = `HTTP ${res.status}`
-      try {
-        const errBody = (await res.json()) as { error?: string }
-        if (errBody?.error) detail += ` — ${errBody.error}`
-      } catch {
-        // ignore parse error; keep the status-only message.
-      }
-      throw new Error(`Bug report failed (${detail})`)
-    }
-    const data = (await res.json()) as {
-      identifier?: string
-      url?: string
-    }
-    toast.success(
-      data.identifier ? `Bug reported: ${data.identifier}` : "Bug reported",
-      data.url
-        ? {
-            action: {
-              label: "Open",
-              onClick: () => window.open(data.url, "_blank"),
-            },
-          }
-        : undefined,
-    )
-    return data
+    // Forwarded to apps/api `POST /v1/feedback` via the `reportFeedback`
+    // server action (same-origin RPC → server-to-server, no browser
+    // CORS). Throws on failure so the BugReportDialog's submit-state
+    // machine flips to "error" and keeps itself open. v1 returns an
+    // opaque referenceId (no Linear issue URL), surfaced via the toast.
+    const { referenceId } = await reportFeedback(payload)
+    toast.success(`Feedback sent — ${referenceId}`)
   }, [])
 
   return (
