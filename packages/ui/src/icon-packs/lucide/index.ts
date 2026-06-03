@@ -149,7 +149,17 @@ import {
   IdCard,
   SwatchBook,
   BookUser,
+  Circle,
+  CircleUser,
+  ListTodo,
+  Keyboard,
+  GitPullRequestArrow,
+  Info,
   CircleHelp,
+  Blocks,
+  Workflow,
+  HatGlasses,
+  CreditCard,
 } from "lucide-react"
 
 import type { IconMap } from "../types"
@@ -313,5 +323,15 @@ export const lucideIcons = {
   IdCard,
   SwatchBook,
   BookUser,
+  Circle,
+  CircleUser,
+  ListTodo,
+  Keyboard,
+  GitPullRequestArrow,
+  Info,
   CircleHelp,
+  Blocks,
+  Workflow,
+  HatGlasses,
+  CreditCard,
 } satisfies IconMap

@@ -132,7 +132,15 @@ import {
   faIdCard,
   faSwatchbook,
   faAddressBook,
+  faCircle,
+  faCircleUser,
+  faKeyboard,
+  faCodePullRequest,
   faCircleQuestion,
+  faShapes,
+  faDiagramProject,
+  faGlasses,
+  faCreditCard,
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import * as React from "react"
@@ -317,5 +325,15 @@ export const fontawesomeIcons = {
   IdCard: wrap(faIdCard),
   SwatchBook: wrap(faSwatchbook),
   BookUser: wrap(faAddressBook),
+  Circle: wrap(faCircle),
+  CircleUser: wrap(faCircleUser),
+  ListTodo: wrap(faListCheck),
+  Keyboard: wrap(faKeyboard),
+  GitPullRequestArrow: wrap(faCodePullRequest),
+  Info: wrap(faCircleInfo),
   CircleHelp: wrap(faCircleQuestion),
+  Blocks: wrap(faShapes),
+  Workflow: wrap(faDiagramProject),
+  HatGlasses: wrap(faGlasses),
+  CreditCard: wrap(faCreditCard),
 } satisfies IconMap

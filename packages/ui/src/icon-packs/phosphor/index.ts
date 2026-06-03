@@ -139,6 +139,14 @@ import {
   Target,
   BookOpenUser,
   Question,
+  Circle,
+  UserCircle,
+  Keyboard,
+  GitPullRequest,
+  SquaresFour,
+  FlowArrow,
+  Sunglasses,
+  CreditCard,
 } from "@phosphor-icons/react"
 
 import type { IconMap } from "../types"
@@ -297,5 +305,15 @@ export const phosphorIcons = {
   IdCard: IdentificationCard,
   SwatchBook: Swatches,
   BookUser: BookOpenUser,
+  Circle: Circle,
+  CircleUser: UserCircle,
+  ListTodo: ListChecks,
+  Keyboard: Keyboard,
+  GitPullRequestArrow: GitPullRequest,
+  Info: Info,
   CircleHelp: Question,
+  Blocks: SquaresFour,
+  Workflow: FlowArrow,
+  HatGlasses: Sunglasses,
+  CreditCard: CreditCard,
 } satisfies IconMap
