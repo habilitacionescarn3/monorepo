@@ -35,6 +35,14 @@ export const registry: Record<string, ComponentMeta> = {
     categories: ["block", "navigation", "app"],
     dependencies: ["context-menu"],
   },
+  "icon-button": {
+    source: "src/components/icon-button",
+    sourceType: "custom",
+    description:
+      "Component — standardized clickable icon tile, the single source for the icon-box look (rail, header, …). Icon-only (size-8 square) or icon+label (rectangle with the glyph↔label gap baked in via --icon-label-gap). Whole element is the click target: <button>, <a> via href, or any element via asChild. State colors from the generic --icon* tokens (idle text-icon, hover bg-icon-hover-bg, active text-icon-active + bg-icon-active-bg). Optional tooltip with side + sideOffset (exact gap / safe-zone). Glyph resolves from the active IconProvider pack.",
+    categories: ["component", "navigation", "app"],
+    dependencies: ["tooltip"],
+  },
   "auth-shell": {
     source: "src/blocks/auth-shell",
     sourceType: "custom",
