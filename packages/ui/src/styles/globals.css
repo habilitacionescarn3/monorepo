@@ -53,8 +53,6 @@
   --color-rail-label: var(--rail-label);
   --color-rail-label-active: var(--rail-label-active);
   --color-rail-separator: var(--rail-separator);
-  /* App-header Sidekick idle wrapper (selected state reuses border-subtle). */
-  --color-header-sidekick-bg: var(--header-sidekick-bg);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
@@ -124,6 +122,13 @@
   /* IconButton internals (shared): glyph↔label gap + label type size. */
   --icon-label-gap: 8px;
   --icon-label-size: 13px;
+  /* Dropdown-menu item text size (header + future menus). */
+  --menu-text-size: 12px;
+  /* Header search box: min/max width + the total horizontal gutter it
+     keeps clear (so it shrinks before crowding the side zones). */
+  --header-search-min: 160px;
+  --header-search-max: 400px;
+  --header-search-gutter: 360px;
   --rail-label-size: 10px;
   --rail-label-weight: 500;
   --rail-label-tracking: -0.01em;
@@ -131,8 +136,6 @@
   --rail-gap-collapsed: 8px;
   --rail-icon-label-gap: 2px;
   --rail-pad-top: 16px;
-  /* App-header Sidekick idle wrapper. Selected state reuses --border-subtle. */
-  --header-sidekick-bg: #f5f5f5;
   --muted: #f5f5f5;
   --muted-foreground: #737373;
   --accent: #f5f5f5;
@@ -187,7 +190,6 @@
   --rail-label: #9aa0a3;
   --rail-label-active: #e8eaeb;
   --rail-separator: #3a3d40;
-  --header-sidekick-bg: #2c2f31;
   --muted: #262626;
   --muted-foreground: #a3a3a3;
   --accent: #262626;

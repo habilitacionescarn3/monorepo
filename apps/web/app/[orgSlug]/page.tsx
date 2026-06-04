@@ -1,9 +1,10 @@
 import { getBuildVersion } from "@workspace/ui/brand-assets"
+import { AppHeader } from "@workspace/ui/blocks/app-header"
 import { AppShell } from "@workspace/ui/blocks/app-shell"
 
-import { AppHeaderClient } from "../_components/app-header-client"
 import { AppRailNav } from "../_components/app-rail-nav"
 import { IconPackSwitcher } from "../_components/icon-pack-switcher"
+import { OrgHeaderActions } from "../_components/org-header-actions"
 import { orgRailNav } from "./nav"
 
 export const metadata = {
@@ -19,9 +20,13 @@ export default async function OrgDashboardPage({
   return (
     <AppShell
       header={
-        <AppHeaderClient
-          userName="Hleb Tkachenko"
-          version={getBuildVersion()}
+        <AppHeader
+          actions={
+            <OrgHeaderActions
+              userName="Hleb Tkachenko"
+              version={getBuildVersion()}
+            />
+          }
         />
       }
       rail={<AppRailNav items={orgRailNav(orgSlug)} />}

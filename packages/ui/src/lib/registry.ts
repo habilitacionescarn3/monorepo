@@ -23,9 +23,9 @@ export const registry: Record<string, ComponentMeta> = {
     source: "src/blocks/app-header",
     sourceType: "custom",
     description:
-      "Block — top bar for the AppShell header slot. Centered search input; right-aligned controls (inbox, tasks, help, settings) each a ghost icon button, with count badges on inbox/tasks, plus an account avatar; left side empty. Icons resolve from the active IconProvider pack.",
+      "Block — presentational top bar for the AppShell header slot. Renders a screen-centered responsive search input plus a right-side `actions` ReactNode slot; the surface (org, admin, …) composes its own action cluster from shared primitives (IconButton, DropdownMenu, …). No product content lives in the block. Search glyph resolves from the active IconProvider pack.",
     categories: ["block", "navigation", "app"],
-    dependencies: ["avatar", "button", "input"],
+    dependencies: ["input"],
   },
   "app-rail": {
     source: "src/blocks/app-rail",

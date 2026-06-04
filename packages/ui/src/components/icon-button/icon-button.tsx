@@ -50,7 +50,13 @@ export interface IconButtonProps extends Omit<
    * React 19 ref-as-prop, no forwardRef needed.
    */
   ref?: React.Ref<HTMLElement>
-  /** Tooltip content. Omit → no tooltip. */
+  /**
+   * Tooltip content. Omit → no tooltip. NOTE: when set, the component
+   * returns a `<TooltipProvider>` tree, not a DOM node — so do NOT also
+   * use this IconButton as another Radix `asChild` trigger (e.g.
+   * DropdownMenuTrigger). For "button with tooltip AND a menu", omit this
+   * prop and wrap the trigger in your own `<Tooltip>` instead.
+   */
   tooltip?: React.ReactNode
   /** Tooltip side. Default `"right"`. */
   tooltipSide?: "top" | "right" | "bottom" | "left"

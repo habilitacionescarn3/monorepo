@@ -148,7 +148,7 @@ export function AppRail({
           {items.map((entry, i) =>
             isItem(entry) ? (
               <RailNavItem
-                key={entry.href ?? entry.label}
+                key={entry.href ?? `${entry.label}-${i}`}
                 item={entry}
                 mode={mode}
                 active={entry.href != null && entry.href === activeHref}
