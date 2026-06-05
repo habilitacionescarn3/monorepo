@@ -159,7 +159,7 @@ export function AppRail({
           )}
         </nav>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-44">
+      <ContextMenuContent className="w-44 p-2 [&_[data-slot=context-menu-radio-item]]:gap-2 [&_[data-slot=context-menu-radio-item]]:py-1.5 [&_[data-slot=context-menu-radio-item]]:pl-2">
         <ContextMenuRadioGroup
           value={mode}
           onValueChange={(v) => setMode(v as RailMode)}

@@ -204,7 +204,9 @@ describe("AppContextMenu", () => {
         document.querySelector("[data-slot='bug-report-dialog']"),
       ).toBeTruthy()
     })
-    expect(screen.getByText(/Report bug/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: /Send feedback/i }),
+    ).toBeInTheDocument()
     expect(
       screen.getByText(/Page context is auto-attached/i),
     ).toBeInTheDocument()
@@ -258,7 +260,7 @@ describe("AppContextMenu", () => {
     await user.click(screen.getByRole("menuitem", { name: /Report bug/i }))
     const textarea = await screen.findByLabelText(/Message/i)
     await user.type(textarea, "found a glitch")
-    await user.click(screen.getByRole("button", { name: /Send report/i }))
+    await user.click(screen.getByRole("button", { name: /Send feedback/i }))
     await waitFor(() => expect(onReportBug).toHaveBeenCalledTimes(1))
     const arg = onReportBug.mock.calls[0]![0] as {
       kind: string

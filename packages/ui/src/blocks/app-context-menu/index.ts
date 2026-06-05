@@ -21,3 +21,4 @@ export type {
   ViewportInfo,
 } from "./app-context-menu"
 export { BugReportDialog } from "./parts/bug-report-dialog"
+export { captureContext } from "./lib/capture-context"

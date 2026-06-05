@@ -216,7 +216,7 @@ export function AppContextMenu({
             {children}
           </div>
         </ContextMenuTrigger>
-        <ContextMenuContent className="w-48">
+        <ContextMenuContent className="w-48 p-2 [&_[data-slot=context-menu-item]]:gap-2 [&_[data-slot=context-menu-item]]:px-2 [&_[data-slot=context-menu-item]]:py-1.5 [&_[data-slot=context-menu-label]]:px-2 [&_[data-slot=context-menu-separator]]:-mx-2 [&_[data-slot=context-menu-separator]]:my-2">
           <BorderBeam size="md" borderRadius={6} className="block rounded-md">
             <ContextMenuItem
               onSelect={() => void handleAskSidekick()}

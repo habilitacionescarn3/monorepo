@@ -35,6 +35,9 @@ type SubmitState = "idle" | "submitting" | "success" | "error"
 interface BugReportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Type preselected when the dialog opens. Right-click → "bug"; the
+   *  header "Send feedback" → "question" (labelled "Feedback"). */
+  defaultType?: BugReportType
   /** Captured context snapshot for the right-click that opened this dialog. */
   context: CapturedContext | null
   /** Pre-fill for the reply-to email; usually the signed-in user's email. */
@@ -66,11 +69,12 @@ const EMAIL_MAX = 254
 export function BugReportDialog({
   open,
   onOpenChange,
+  defaultType = "bug",
   context,
   defaultEmail,
   onSubmit,
 }: BugReportDialogProps) {
-  const [type, setType] = React.useState<BugReportType>("bug")
+  const [type, setType] = React.useState<BugReportType>(defaultType)
   const [message, setMessage] = React.useState("")
   const [email, setEmail] = React.useState<string>("")
   const [submitState, setSubmitState] = React.useState<SubmitState>("idle")
@@ -79,13 +83,13 @@ export function BugReportDialog({
   // Reset every time the dialog opens with a fresh context capture.
   React.useEffect(() => {
     if (open) {
-      setType("bug")
+      setType(defaultType)
       setMessage("")
       setEmail(defaultEmail ?? "")
       setSubmitState("idle")
       setErrorMessage(null)
     }
-  }, [open, defaultEmail])
+  }, [open, defaultType, defaultEmail])
 
   // Auto-close after a successful submission so the user sees the
   // green check briefly, then the dialog goes away on its own.
@@ -128,7 +132,7 @@ export function BugReportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-slot="bug-report-dialog" className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Report bug</DialogTitle>
+          <DialogTitle>Send feedback</DialogTitle>
           <DialogDescription>Page context is auto-attached.</DialogDescription>
         </DialogHeader>
 
@@ -238,7 +242,7 @@ function SubmitButtonContent({ state }: { state: SubmitState }) {
   return (
     <>
       <Send />
-      Send report
+      Send feedback
     </>
   )
 }

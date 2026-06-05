@@ -153,7 +153,7 @@ export function AppShell({
     }
   }, [])
 
-  const toggleSidebar = () => setSidebarOpen((s) => !s)
+  const toggleSidebar = React.useCallback(() => setSidebarOpen((s) => !s), [])
   const toggleAssistant = React.useCallback(
     () => setAssistantOpen((s) => !s),
     [],
@@ -162,6 +162,37 @@ export function AppShell({
     () => ({ assistantOpen, toggleAssistant }),
     [assistantOpen, toggleAssistant],
   )
+
+  // Keyboard shortcuts: "B" toggles the sidebar, "S" toggles the
+  // assistant. Skipped while typing in a field/contenteditable or when a
+  // modifier is held, so they never hijack browser or editor chords.
+  const hasSidebar = sidebar !== undefined
+  const hasAssistant = assistant !== undefined
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return
+      const el = e.target as HTMLElement | null
+      if (
+        el &&
+        (el.isContentEditable ||
+          el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT")
+      ) {
+        return
+      }
+      const key = e.key?.toLowerCase()
+      if (key === "b" && hasSidebar) {
+        e.preventDefault()
+        toggleSidebar()
+      } else if (key === "s" && hasAssistant) {
+        e.preventDefault()
+        toggleAssistant()
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [hasSidebar, hasAssistant, toggleSidebar, toggleAssistant])
 
   const onSidebarHandlePointerDown = (
     e: React.PointerEvent<HTMLDivElement>,

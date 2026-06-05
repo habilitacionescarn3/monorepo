@@ -470,7 +470,9 @@ export const BUG_REPORT_TYPES: ReadonlyArray<{
   { value: "bug", label: "Bug" },
   { value: "request", label: "Feature request" },
   { value: "issue", label: "Process / UX issue" },
-  { value: "question", label: "Question" },
+  // Wire value stays "question" (the public /v1/feedback enum); only the
+  // user-facing label is "Feedback".
+  { value: "question", label: "Feedback" },
 ]
 
 export interface BugReportPayload extends CapturedContext {

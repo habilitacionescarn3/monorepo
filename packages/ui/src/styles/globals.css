@@ -122,8 +122,11 @@
   /* IconButton internals (shared): glyph↔label gap + label type size. */
   --icon-label-gap: 8px;
   --icon-label-size: 13px;
-  /* Dropdown-menu item text size (header + future menus). */
-  --menu-text-size: 12px;
+  /* App-chrome menu item text size — GitHub Primer body-medium (14px).
+     Drives the Help/Profile dropdowns + both right-click context menus. */
+  --menu-text-size: 14px;
+  /* App-chrome menu min width — menus size to content above this floor. */
+  --menu-min-width: 220px;
   /* Header search box: min/max width + the total horizontal gutter it
      keeps clear (so it shrinks before crowding the side zones). */
   --header-search-min: 160px;
