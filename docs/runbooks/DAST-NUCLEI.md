@@ -8,10 +8,11 @@ nightly against the live afframe hosts. It is the one layer the source-level
 scanners (CodeQL, OSV, Trivy, Dependabot, gitleaks, TruffleHog) cannot reach:
 **DAST** — testing the running, deployed system over the network, the way an
 attacker sees it. Findings surface in the GitHub **Security tab** as SARIF under
-category `nuclei`.
+per-host categories `nuclei-<label>`.
 
-**Advisory only.** The scan never fails on findings. Flip it to a required check
-manually only after a green cycle (see "Promotion" below).
+**Advisory only.** A scheduled scan (cron + dispatch), it never runs on a PR and
+never gates merges — its job is visibility. See "Escalation" for how findings
+get acted on.
 
 ## What it scans
 
@@ -35,14 +36,29 @@ stack traces, fingerprinted-CVE versions on the public surface.
 
 ## How a run works
 
+Two jobs, fanned out for wall-clock:
+
 ```
-probe 6 hosts ─▶ build targets.txt (reachable only)
-              ─▶ nuclei scan (safe profile, rate-limited)   [skipped if 0 reachable]
-              ─▶ ensure valid SARIF ─▶ upload to Security tab
+targets job ─▶ probe all candidate hosts IN PARALLEL
+            ─▶ emit a matrix of the reachable ones {host, label}   [scan skipped if 0]
+
+scan job (matrix) ─▶ one host per runner, all in PARALLEL (fail-fast: false)
+                  ─▶ nuclei (safe profile, 10 req/s per host)
+                  ─▶ verify templates loaded (guard against false-green)
+                  ─▶ ensure valid SARIF ─▶ upload (category nuclei-<label>)
 ```
 
-No infra mutation: the job never resumes/parks an env, touches AWS, or calls the
-Cloudflare API. It sends HTTP only to whatever is already up.
+**Why the matrix:** a single nuclei process applies `-rate-limit` _globally_, so
+scanning 6 hosts in one process throttles all of them to a shared 10 req/s — the
+dominant cost (a baseline single-process run took 20+ min). One host per runner
+gives each its own 10 req/s budget: per-host load is unchanged (still gentle on
+Cloudflare/origin), but wall-clock drops to roughly the slowest single host.
+
+`workflow_dispatch` takes a `target` input (`all` | `prod` | `staging`) to scan
+a subset on demand.
+
+No infra mutation: the jobs never resume/park an env, touch AWS, or call the
+Cloudflare API. They send HTTP only to whatever is already up.
 
 ### Reachability probe (why nothing false-fails)
 
@@ -87,8 +103,10 @@ gh run watch                             # follow the latest run
 ```
 
 Read findings: GitHub repo → **Security** → **Code scanning** → filter category
-`nuclei`. Each finding carries the host URL, so prod vs staging is visible per
-result. Dismiss false positives there as usual.
+`nuclei-<label>` (one per host, e.g. `nuclei-app-prod`, `nuclei-admin-staging`).
+Each finding also carries the host URL. Dismiss false positives there as usual.
+A host that was down/parked that night keeps its previous category contents
+(not re-scanned), which is expected for an advisory baseline.
 
 ## Coverage limits + phase 2
 
@@ -111,8 +129,11 @@ v1 is an **unauthenticated edge baseline**. Two deliberate gaps:
 workflow needed. The Nuclei binary is pinned to `version: latest` deliberately:
 a security scanner should run the newest engine + templates each night.
 
-## Promotion to required (manual, Hleb)
+## Escalation (manual, Hleb)
 
-After a green nightly cycle, add `Nuclei DAST / scan` to the required checks in
-`.github/rulesets/main.json`. Advisory until then — the scan's job is visibility,
-not gating merges, while it beds in behind Cloudflare.
+This is a **scheduled** scan (cron + dispatch), not a PR check — it never runs
+on a PR, so it cannot be a branch-protection required context, and the matrix
+leg names (`scan (app-prod)`, …) are dynamic anyway. "Promotion" therefore means
+escalating findings, not gating merges: once it has bedded in, wire an alert (or
+auto-open an issue) on any new high/critical finding in the `nuclei-*` Code
+Scanning categories. Until then it is pure visibility in the Security tab.
