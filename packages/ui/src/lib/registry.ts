@@ -15,7 +15,7 @@ export const registry: Record<string, ComponentMeta> = {
     source: "src/blocks/app-shell",
     sourceType: "custom",
     description:
-      "Block — plane-style app shell (header + left rail + sidebar + body + optional right assistant) used by apps/web/app/[orgSlug], apps/web/app/workspace, and (later) apps/admin. Outer surface uses bg-secondary; sidebar and body share a single rounded card split by an inner resizable handle; the assistant is a separate rounded card with a real gap. Geometry only — slots are provided by the consumer. Also exposes ShellSkeleton (loading.tsx) and ErrorShell (error.tsx / not-found.tsx).",
+      "Block — plane-style app shell (header + left rail + sidebar + body + optional right assistant) used by apps/web/app/[orgSlug], apps/web/app/workspace, and (later) apps/admin. Outer surface uses bg-canvas; an outer ResizablePanelGroup splits the content into a main card (sidebar + body sharing one rounded SHELL_CARD_CLASS card, divided by a plain pointer-drag separator) and a separate assistant card across the group's only ResizableHandle, with a real gap. Geometry only — slots are provided by the consumer. Also exposes ShellSkeleton (loading.tsx) and ErrorShell (error.tsx / not-found.tsx).",
     categories: ["block", "layout", "app"],
     dependencies: ["button", "resizable", "skeleton"],
   },

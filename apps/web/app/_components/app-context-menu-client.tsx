@@ -40,6 +40,17 @@ export function AppContextMenuClient({
     toast.success(`Feedback sent — ${referenceId}`)
   }, [])
 
+  // The three "copy to clipboard then toast" menu actions differ only by
+  // their success message, so share one handler factory.
+  const copyWithToast = useCallback(
+    (message: string) => (_: unknown, formatted: string) =>
+      void navigator.clipboard
+        .writeText(formatted)
+        .then(() => toast.success(message))
+        .catch(() => toast.error("Clipboard write failed")),
+    [],
+  )
+
   return (
     <AppContextMenu
       pathname={pathname ?? "/"}
@@ -51,24 +62,9 @@ export function AppContextMenuClient({
         framework: "Next.js 16 (App Router) + Turborepo + pnpm workspaces",
       }}
       onReportBug={onReportBug}
-      onAskSidekick={(_, formatted) =>
-        void navigator.clipboard
-          .writeText(formatted)
-          .then(() => toast.success("Sidekick prompt copied"))
-          .catch(() => toast.error("Clipboard write failed"))
-      }
-      onAboutBlock={(_, formatted) =>
-        void navigator.clipboard
-          .writeText(formatted)
-          .then(() => toast.success("Help search copied"))
-          .catch(() => toast.error("Clipboard write failed"))
-      }
-      onCopyPath={(_, formatted) =>
-        void navigator.clipboard
-          .writeText(formatted)
-          .then(() => toast.success("Agent prompt copied"))
-          .catch(() => toast.error("Clipboard write failed"))
-      }
+      onAskSidekick={copyWithToast("Sidekick prompt copied")}
+      onAboutBlock={copyWithToast("Help search copied")}
+      onCopyPath={copyWithToast("Agent prompt copied")}
     >
       {children}
     </AppContextMenu>
