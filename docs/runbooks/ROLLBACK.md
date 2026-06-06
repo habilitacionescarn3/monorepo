@@ -29,9 +29,11 @@ cosign verify-attestation --type slsaprovenance "$ECR_REPO@$PREVIOUS_DIGEST" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 # 2. Trigger the rollback workflow with the explicit digest pinned.
+# NOTE: _deploy-aws.yml has no imageDigest input — the -f imageDigest line
+# below needs reconciling against the actual workflow inputs before use.
 gh workflow run _deploy-aws.yml \
   -f environment=production \
-  -f stack=App-production \
+  -f stack=app-only \
   -f imageDigest=$PREVIOUS_DIGEST
 ```
 
@@ -44,6 +46,7 @@ gh workflow run _deploy-aws.yml \
 ## Database rollback
 
 Database changes are forward-only. Reverse-migration is allowed only when:
+
 1. The schema change shipped behind an expand-contract pattern (additive, not destructive), AND
 2. A dual-write / dual-read window was in place, AND
 3. A rollback-tested reverse migration script exists and was rehearsed.
@@ -53,6 +56,7 @@ Otherwise: forward-fix. Reverting a destructive migration without a rehearsed re
 ## Postmortem
 
 Every rollback triggers a postmortem within 5 business days. Template lives at `templates/postmortem.md` (added with first SEV1). Required sections:
+
 - Timeline.
 - What broke.
 - Why the safeguards did not catch it.
