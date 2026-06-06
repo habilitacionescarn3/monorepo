@@ -1,6 +1,4 @@
-import { headers } from "next/headers"
 import { eq } from "drizzle-orm"
-import { auth } from "@workspace/auth/server"
 import { withAdminBypass } from "@workspace/db"
 import { app_user } from "@workspace/db/schema"
 import { getBuildVersion } from "@workspace/ui/brand-assets"
@@ -8,6 +6,7 @@ import { AppHeader } from "@workspace/ui/blocks/app-header"
 import { AppShell } from "@workspace/ui/blocks/app-shell"
 
 import { presignAvatarRead } from "../_lib/avatar-storage"
+import { getRequestSession } from "./_lib/request-session"
 import { AppRailNav } from "../_components/app-rail-nav"
 import { IconPackSwitcher } from "../_components/icon-pack-switcher"
 import { OrgHeaderActions } from "../_components/org-header-actions"
@@ -28,7 +27,7 @@ async function getHeaderUser(): Promise<{
   userName?: string
   userImage?: string
 }> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getRequestSession()
   const userId = session?.user?.id
   if (!userId) return {}
 
