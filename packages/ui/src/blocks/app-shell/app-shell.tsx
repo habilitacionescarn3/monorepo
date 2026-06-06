@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { Logo } from "@workspace/ui/brand-assets/logo"
+import { Logo } from "@workspace/ui/brand-assets"
 import { Button } from "@workspace/ui/components/button"
 import {
   ResizableHandle,
