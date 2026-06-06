@@ -128,6 +128,21 @@ export function captureContext(input: CaptureInput): CapturedContext {
 
 /* ── capture helpers ───────────────────────────────────────────────── */
 
+/**
+ * Reduce a URL to origin + pathname, dropping the query string and hash.
+ * Captured page/referrer URLs are forwarded to the support inbox + Linear,
+ * so query params (invite/reset tokens, signed-download params, search
+ * terms) must never leave the browser. Do NOT restore the full href.
+ */
+function originPath(href: string): string {
+  try {
+    const u = new URL(href)
+    return u.origin + u.pathname
+  } catch {
+    return href.split(/[?#]/)[0] ?? href
+  }
+}
+
 function capturePage(pathname: string): PageInfo {
   if (typeof window === "undefined") {
     return {
@@ -146,12 +161,12 @@ function capturePage(pathname: string): PageInfo {
       ? "light"
       : "system"
   return {
-    url: window.location.href,
+    url: originPath(window.location.href),
     pathname,
     title: document.title || null,
     locale: root.lang || null,
     theme,
-    referrer: document.referrer || null,
+    referrer: document.referrer ? originPath(document.referrer) : null,
   }
 }
 
@@ -273,12 +288,19 @@ function buildDomPath(el: HTMLElement | null): string {
 function findNearestHeading(el: HTMLElement): string | null {
   let node: HTMLElement | null = el
   for (let i = 0; node && i < HEADING_LOOKBACK; i += 1) {
-    // Search backwards through previous siblings + ancestors' headings.
-    const heading = node.parentElement?.querySelector(
-      "h1, h2, h3, h4",
-    ) as HTMLElement | null
-    if (heading && heading.textContent) {
-      return heading.textContent.trim().slice(0, 200)
+    // Walk previous siblings at this level, nearest first, and take the
+    // closest one that is (or contains) a heading. Only after exhausting
+    // this level do we ascend — so we return the nearest *preceding*
+    // heading rather than the first heading anywhere in the parent subtree.
+    let sibling: Element | null = node.previousElementSibling
+    while (sibling) {
+      const heading = sibling.matches("h1, h2, h3, h4")
+        ? sibling
+        : sibling.querySelector("h1, h2, h3, h4")
+      if (heading?.textContent) {
+        return heading.textContent.trim().slice(0, 200)
+      }
+      sibling = sibling.previousElementSibling
     }
     node = node.parentElement
   }
@@ -607,11 +629,13 @@ export function buildBugReport(input: {
 function inferDocsQuery(ctx: CapturedContext): string {
   // Prefer the inferred block (data-slot of nearest ancestor),
   // fall back to the element's own data-slot, then role, then tag.
+  // `||` not `??`: an empty captured element yields tag === "" (not null),
+  // which must fall through to the "app" default rather than short-circuit.
   return (
-    ctx.surrounding.inferred_block ??
-    ctx.element.data_slot ??
-    ctx.element.role ??
-    ctx.element.tag ??
+    ctx.surrounding.inferred_block ||
+    ctx.element.data_slot ||
+    ctx.element.role ||
+    ctx.element.tag ||
     "app"
   )
 }
@@ -619,10 +643,10 @@ function inferDocsQuery(ctx: CapturedContext): string {
 function autoBugTitle(ctx: CapturedContext, type: BugReportType): string {
   const where = ctx.page.pathname || "/"
   const what =
-    ctx.surrounding.inferred_block ??
-    ctx.element.data_slot ??
-    ctx.element.role ??
-    ctx.element.tag ??
+    ctx.surrounding.inferred_block ||
+    ctx.element.data_slot ||
+    ctx.element.role ||
+    ctx.element.tag ||
     "page"
   const prefix =
     type === "request"
