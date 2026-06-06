@@ -1,12 +1,11 @@
 import type { ReactNode } from "react"
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { eq, and } from "drizzle-orm"
-import { auth } from "@workspace/auth/server"
 import { withAdminBypass } from "@workspace/db"
 import { organization, organization_membership } from "@workspace/db/schema"
 
 import { AppContextMenuClient } from "../_components/app-context-menu-client"
+import { getRequestSession } from "./_lib/request-session"
 
 // Mirrors the DB CHECK constraint on organization.slug:
 //   slug ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
@@ -59,7 +58,7 @@ export default async function OrgLayout({
     redirect("/workspace?error=invalid-slug")
   }
 
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getRequestSession()
   if (!session) {
     // Pass the requested path forward so login can bounce back here.
     redirect("/auth/login?next=" + encodeURIComponent("/" + orgSlug))
