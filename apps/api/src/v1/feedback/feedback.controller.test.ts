@@ -5,6 +5,7 @@ vi.mock("@workspace/email", () => ({
   sendEmail: vi.fn().mockResolvedValue(undefined),
 }))
 
+import { ValidationError } from "@workspace/shared/errors"
 import { sendEmail } from "@workspace/email"
 import { FeedbackController } from "./feedback.controller"
 
@@ -87,5 +88,12 @@ describe("FeedbackController", () => {
     const call = vi.mocked(sendEmail).mock.calls[0]?.[0]
     expect(call?.text).not.toContain("---")
     expect(call?.text).not.toContain("**Where**")
+  })
+
+  it("rejects an invalid body with a domain ValidationError (maps to 422)", async () => {
+    await expect(
+      controller.create({ type: "bogus", message: "" }),
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 })

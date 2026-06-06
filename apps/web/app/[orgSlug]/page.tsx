@@ -79,7 +79,9 @@ export default async function OrgDashboardPage({
       assistant={<div className="size-full" />}
       logoHref={`/${orgSlug}`}
     >
-      <IconPackSwitcher />
+      {/* Temporary dev-only control for visually verifying the icon-pack
+          swap. Gated out of production until the real settings UI ships. */}
+      {process.env.NODE_ENV !== "production" && <IconPackSwitcher />}
     </AppShell>
   )
 }

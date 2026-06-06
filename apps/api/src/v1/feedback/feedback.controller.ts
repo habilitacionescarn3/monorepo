@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto"
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -10,6 +9,7 @@ import {
   UseFilters,
 } from "@nestjs/common"
 import { CreateFeedbackRequestSchema } from "@workspace/shared/api"
+import { ValidationError } from "@workspace/shared/errors"
 import { ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger"
 import { sendEmail } from "@workspace/email"
 import type {
@@ -230,12 +230,11 @@ export class FeedbackController {
       this.logger.warn(
         `[feedback] body rejected: ${JSON.stringify(rawBody)} issues=${JSON.stringify(parsed.error.issues)}`,
       )
-      throw new BadRequestException({
-        code: "validation_error",
-        message: `Invalid feedback payload: ${parsed.error.issues
+      throw new ValidationError(
+        `Invalid feedback payload: ${parsed.error.issues
           .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)
           .join("; ")}`,
-      })
+      )
     }
     const body: CreateFeedbackRequest = parsed.data
     const referenceId = generateReferenceId()

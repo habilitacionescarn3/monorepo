@@ -2,12 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": [".next/**", "!.next/cache/**"],
-      "env": [
-        "LINEAR_API_KEY",
-        "LINEAR_AFFRAME_TEAM_ID",
-        "LINEAR_SUPPORT_PROJECT_ID"
-      ]
+      "outputs": [".next/**", "!.next/cache/**"]
     }
   }
 }

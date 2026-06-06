@@ -345,7 +345,7 @@ export function AppShell({
                         }
                         onClick={toggleSidebar}
                       >
-                        <PanelLeftIcon className="size-4 text-[#4E5255]" />
+                        <PanelLeftIcon className="size-4 text-sidekick-icon" />
                       </Button>
                     </div>
                   )}
@@ -360,7 +360,7 @@ export function AppShell({
                         }
                         onClick={toggleAssistant}
                       >
-                        <PanelRight className="size-4 text-[#4E5255]" />
+                        <PanelRight className="size-4 text-sidekick-icon" />
                       </Button>
                     </div>
                   )}

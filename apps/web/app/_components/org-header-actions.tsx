@@ -189,7 +189,7 @@ export function OrgHeaderActions({
   // clicked element, so capture a page-level context snapshot on open.
   const openFeedback = () => {
     setFeedbackContext(
-      captureContext({ target: null, selectionText: null, pathname }),
+      captureContext({ target: null, selectionText: null, pathname, orgSlug }),
     )
     setFeedbackOpen(true)
   }

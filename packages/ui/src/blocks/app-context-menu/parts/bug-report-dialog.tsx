@@ -129,7 +129,15 @@ export function BugReportDialog({
     !messageValid
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // Don't let Escape / overlay-click dismiss the dialog mid-submit
+        // (the Close button is already disabled then) — the in-flight
+        // request must resolve on the still-open dialog.
+        if (submitState !== "submitting") onOpenChange(next)
+      }}
+    >
       <DialogContent data-slot="bug-report-dialog" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Send feedback</DialogTitle>
