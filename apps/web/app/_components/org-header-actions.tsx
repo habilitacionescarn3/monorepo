@@ -201,8 +201,8 @@ export function OrgHeaderActions({
       <IconButton icon="ListTodo" tooltip="Tasks" tooltipSide="bottom" />
 
       <DropdownMenu modal={false}>
-        <HeaderMenuTrigger tooltip="Help">
-          <IconButton icon="CircleHelp" aria-label="Help" />
+        <HeaderMenuTrigger tooltip="Get help">
+          <IconButton icon="CircleHelp" aria-label="Get help" />
         </HeaderMenuTrigger>
         <DropdownMenuContent
           align="start"
