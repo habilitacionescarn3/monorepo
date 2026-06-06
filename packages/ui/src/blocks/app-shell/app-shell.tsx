@@ -22,6 +22,17 @@ interface AppShellProps {
   defaultSidebarOpen?: boolean
   defaultAssistantOpen?: boolean
   /**
+   * Card treatment for the assistant panel — a manual, code-level switch
+   * (NOT a user-facing control), mirroring how the icon-pack system keeps
+   * multiple variants in code.
+   *   - `"shell"`    (default) → the flat shell card (matches the main card).
+   *   - `"dropdown"` → dropdown/popover-inspired card (rounded-lg + hairline
+   *     border + popover surface). Outer shadow is intentionally omitted: the
+   *     resizable-panel wrapper clips it (see ASSISTANT_DROPDOWN_CARD).
+   * Flip by passing `assistantVariant="dropdown"` from the page.
+   */
+  assistantVariant?: "shell" | "dropdown"
+  /**
    * Logo content for the rail's top square. Defaults to the Afframe
    * logomark in brand-primary tone (auto-adapts light↔dark via the
    * Logo component's sugar tone system). Other apps pass their own
@@ -73,6 +84,15 @@ const SIZES: {
 // card. Each card adds its own overflow rule on top.
 const SHELL_CARD_CLASS =
   "rounded-md border border-border-subtle bg-shell-surface"
+
+// Optional assistant card variant (assistantVariant="dropdown") —
+// dropdown/popover-inspired: real `border` (not a ring) + `rounded-lg` +
+// popover surface. The panel lives inside a react-resizable-panels wrapper
+// whose `overflow:auto` clips outer ring/box-shadow, so a ring/shadow would
+// be invisible; a border lives inside the box → always renders, and
+// `foreground/10` matches the menu dropdown's hairline tone exactly.
+const ASSISTANT_DROPDOWN_CARD =
+  "rounded-lg border border-foreground/10 bg-popover text-popover-foreground"
 
 interface AppShellContextValue {
   /** Whether the assistant panel is currently open. */
@@ -127,6 +147,7 @@ export function AppShell({
   assistant,
   children,
   className,
+  assistantVariant = "shell",
   defaultSidebarOpen = true,
   defaultAssistantOpen = false,
   logo = DEFAULT_LOGO,
@@ -360,7 +381,9 @@ export function AppShell({
                   <aside
                     className={cn(
                       "h-full overflow-x-hidden overflow-y-auto",
-                      SHELL_CARD_CLASS,
+                      assistantVariant === "dropdown"
+                        ? ASSISTANT_DROPDOWN_CARD
+                        : SHELL_CARD_CLASS,
                     )}
                   >
                     {assistant}
