@@ -14,6 +14,7 @@ import {
 import { createStore, type Store } from "./state/store.js"
 import { createGitHubClient, repoOf } from "./github.js"
 import { emitIssue } from "./emit.js"
+import { deliverFromEnv } from "./deliver.js"
 import type { IssueEvent } from "./issues/types.js"
 
 function githubFor(env: Env) {
@@ -166,6 +167,41 @@ export function createBot(env: Env): Bot {
     await emitIssue(event, env, bot)
   })
 
+  // /pending — list open agent approvals, each with a Cancel button.
+  bot.command("pending", async (ctx) => {
+    const open = await store.listPendingApprovals(Date.now())
+    if (open.length === 0) {
+      await ctx.reply("✅ No pending approvals.")
+      return
+    }
+    await ctx.reply(`⏳ ${open.length} pending approval(s):`, {
+      reply_markup: buildButtons(
+        open.map((a) => [
+          {
+            text: `🚫 ${(a.summary ?? a.id).slice(0, 48)}${a.asker ? ` [${a.asker}]` : ""}`,
+            data: `xpr:${a.id}`,
+          },
+        ]),
+      ),
+    })
+  })
+
+  // Free-text HITL replies: a reply to an /ask (text) prompt records the answer.
+  bot.on("message:text", async (ctx) => {
+    const replyTo = ctx.message.reply_to_message?.message_id
+    if (!replyTo) return
+    const ap = await store.getApprovalByPromptMessage(replyTo)
+    if (!ap) return
+    if (Date.now() > ap.exp) {
+      await ctx.reply("⌛ That request already expired.")
+      return
+    }
+    const saved = await store.setAnswerText(ap.id, ctx.message.text, Date.now())
+    await ctx.reply(saved ? "✅ Got your reply." : "Already answered.")
+    // Answer-as-trigger: the reply wakes the agent (webhook / GitHub dispatch).
+    if (saved) await deliverFromEnv(saved, env, store)
+  })
+
   // Inline-button taps — route through the structured callback handler.
   bot.on("callback_query:data", async (ctx) => {
     const action = parseCallback(ctx.callbackQuery.data)
@@ -178,7 +214,12 @@ export function createBot(env: Env): Bot {
       outcome.answer ? { text: outcome.answer } : undefined,
     )
     if (outcome.editText !== undefined) {
-      await ctx.editMessageText(outcome.editText).catch(() => {})
+      // Keep the original question visible — APPEND the result + drop the buttons,
+      // rather than replacing the message text.
+      const msg = ctx.callbackQuery.message
+      const orig = msg && "text" in msg ? msg.text : ""
+      const next = orig ? `${orig}\n\n${outcome.editText}` : outcome.editText
+      await ctx.editMessageText(next).catch(() => {})
     } else if (outcome.stripButtons) {
       await ctx.editMessageReplyMarkup().catch(() => {})
     }
@@ -189,6 +230,24 @@ export function createBot(env: Env): Bot {
           ? { reply_markup: buildButtons(outcome.replyMarkup) }
           : undefined,
       )
+    }
+    // ✍️ Custom: open a force_reply prompt + retarget the approval's reply-matching to it.
+    if (outcome.forceReply) {
+      const sent = await ctx.reply(outcome.forceReply.prompt, {
+        reply_markup: {
+          force_reply: true,
+          input_field_placeholder: "Type your answer",
+        },
+      })
+      await store.setPromptMessage(
+        outcome.forceReply.approvalId,
+        sent.message_id,
+      )
+    }
+    // Answer-as-trigger: a tap (option / cancel) wakes the agent.
+    if (outcome.resolvedId) {
+      const ap = await store.getApproval(outcome.resolvedId)
+      if (ap) await deliverFromEnv(ap, env, store)
     }
   })
 

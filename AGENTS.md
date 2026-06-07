@@ -6,6 +6,33 @@ Instructions for AI agents (Claude Code, Codex, Cursor) working in this monorepo
 
 Issues and planning live in **Linear**. Route by function: product engineering (bugs, CI, infra, features) → **Engineering & Design** (`DEV`); discovery / marketing / pricing / brand → **Product** (`PRO`); pipeline / support → **Sales** (`SAL`); legal / finance / compliance / hiring → **Operations** (`OPS`). The legacy **Afframe** team (`AFF`) is **FROZEN — never file new work there.** Agents reach Linear through the Linear MCP tools (`mcp__claude_ai_Linear__*`): list, search, read, create, and update issues in-session. Conductor can also open a workspace directly from a Linear issue. When work spans sessions, the Linear issue is the source of truth — read it before starting, update it as you go.
 
+## Asking Hleb (human-in-the-loop)
+
+Before a **risky, irreversible, or ambiguous** step (merging, a destructive migration, "which of these?", "ok to proceed?"), don't guess and don't silently stop — **ask Hleb on his phone and block for the answer**. It blocks until he taps an option OR types a reply, prints the answer to stdout, and exits `0` (resolved, incl. an `--on-timeout` policy) or `2` (expired, no answer).
+
+**Pick by situation — exact command, no thinking:**
+
+| Situation | Command |
+|---|---|
+| Choose among options (he can also type his own) | `ask.ts "Which DB?" --options "Postgres,MySQL,SQLite" --asker me` |
+| Yes/no-ish clarification (Accept / Decline + type-your-own) | `ask.ts "Proceed with the refactor?" --confirm --asker me` |
+| Need free-form text | `ask.ts "Any constraints before I start?" --text --asker me` |
+
+```bash
+pnpm exec tsx apps/bot/scripts/ask.ts "<question>" <mode> [--summary "context"] [--asker "<you>"] [--on-timeout Reject] [--ttl 3600]
+```
+
+**Defaults that mean you don't configure anything:** every option/`--confirm` ask **automatically includes a "✍️ Other (type a reply)" button** (he can always answer in free text) — add `--no-custom` only to force a strict pick. `--confirm` labels default to Approve/Reject; override with `--accept "Ship" --reject "Hold"`. `--on-timeout <value>` makes the answer definitive even if he never replies. Captured stdout is the chosen option or his typed text.
+
+From code: `@workspace/notify` → `ask({question,options,allowCustom})` / `askConfirm(q,{accept,reject})` / `askText(q)`. One-way "done / blocked" pings (no answer needed): `notify()` / `alert()` or `apps/bot/scripts/manual-task.ts`.
+
+**Getting the answer — the answer WAKES you, don't poll.** A non-resident agent (whose turn ends) must NOT rely on polling/self-wakeups to catch the reply — pass a trigger and exit; the bot fires it the instant Hleb answers:
+- `resumeWorkflow: "<file>.yml"` — the bot dispatches that GitHub workflow with inputs `ask_id`, `decision`, `text`. Reliable, runs on GitHub's infra, triggered by the answer. **Preferred for this repo.**
+- `callbackUrl` (+ `callbackToken`) — the bot POSTs `{id,kind,decision,text,asker}` there on resolve. For a service agent with an endpoint.
+- Only a resident process that stays alive should use `waitForAnswer(id)` (a poll loop) or the `ask.ts` CLI (it blocks). `GET /answer/:id` remains a durable fallback floor — the answer is always persisted.
+
+Full reference + the four resolution paths: [`docs/runbooks/AGENT-HITL.md`](docs/runbooks/AGENT-HITL.md). Needs `INGEST_SECRET` (env `NOTIFY_SHARED_SECRET`, or `apps/bot/.dev.vars` locally).
+
 ## Architecture
 
 - **Monorepo**: Turborepo + pnpm workspaces

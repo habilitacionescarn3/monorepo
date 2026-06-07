@@ -19,6 +19,8 @@ export type CallbackAction =
   | { t: "rbenv"; env: string } // env chosen for /rollback -> show tag picker
   | { t: "rbtag"; env: string; tag: string } // tag chosen -> confirm
   | { t: "showlog"; runId: number } // run chosen -> failed-job summary
+  | { t: "cancelask"; id: string } // cancel a pending approval (from /pending)
+  | { t: "custom"; id: string } // "✍️ Other" on a choice ask -> open a free-text reply
   | { t: "echo"; data: string }
 
 /** Parse callback_data into a structured action. Unknown shapes fall back to a plain echo. */
@@ -53,6 +55,10 @@ export function parseCallback(data: string): CallbackAction {
       return a && Number.isFinite(Number(a))
         ? { t: "showlog", runId: Number(a) }
         : { t: "echo", data }
+    case "xpr":
+      return a ? { t: "cancelask", id: a } : { t: "echo", data }
+    case "txt":
+      return a ? { t: "custom", id: a } : { t: "echo", data }
     default:
       return { t: "echo", data }
   }
@@ -75,6 +81,10 @@ export interface CallbackOutcome {
   reply?: string
   /** Inline keyboard for the follow-up message (picker / confirm). */
   replyMarkup?: Btn[][]
+  /** Open a force_reply prompt (✍️ Custom): the handler sends it + retargets reply-matching. */
+  forceReply?: { approvalId: string; prompt: string }
+  /** An approval was just resolved by this tap — the handler fires its answer trigger. */
+  resolvedId?: string
 }
 
 /** Persist a pending dispatch and produce a Confirm/Cancel follow-up (shared by typed cmds + pickers). */
@@ -159,15 +169,21 @@ export async function runCallback(
     case "ask": {
       const approval = await deps.store.getApproval(action.id)
       if (!approval) return { answer: "Unknown or expired request." }
-      if (approval.decision)
-        return { answer: `Already answered: ${approval.decision}` }
+      if (approval.decision || approval.answerText)
+        return {
+          answer: `Already answered: ${approval.decision ?? approval.answerText}`,
+        }
       if (now > approval.exp)
         return { answer: "Request expired.", stripButtons: true }
       const option = approval.options[action.idx]
       if (option === undefined) return { answer: "Invalid option." }
-      const updated = await deps.store.setDecision(action.id, option)
+      const updated = await deps.store.setDecision(action.id, option, now)
       return updated
-        ? { answer: `Recorded: ${option}`, editText: `✅ Answered: ${option}` }
+        ? {
+            answer: `Recorded: ${option}`,
+            editText: `✅ Answered: ${option}`,
+            resolvedId: action.id,
+          }
         : { answer: "Already answered." }
     }
 
@@ -248,6 +264,37 @@ export async function runCallback(
                 `🔴 ${j.name}${j.failedSteps.length ? `\n   ↳ ${j.failedSteps.join(", ")}` : ""}`,
             )
             .join("\n"),
+      }
+    }
+
+    case "cancelask": {
+      const updated = await deps.store.setDecision(action.id, "cancelled", now)
+      return updated
+        ? {
+            answer: "Cancelled.",
+            editText: `🚫 Cancelled: ${updated.summary ?? action.id}`,
+            resolvedId: action.id,
+          }
+        : { answer: "Already answered." }
+    }
+
+    case "custom": {
+      const approval = await deps.store.getApproval(action.id)
+      if (!approval) return { answer: "Unknown or expired request." }
+      if (approval.decision || approval.answerText)
+        return {
+          answer: `Already answered: ${approval.decision ?? approval.answerText}`,
+        }
+      if (now > approval.exp) return { answer: "Request expired." }
+      return {
+        answer: "Reply with your text below.",
+        // Drop the option buttons so only the free-text reply remains — no stray option tap
+        // can win the first-answer race after the owner chose "type my own".
+        stripButtons: true,
+        forceReply: {
+          approvalId: action.id,
+          prompt: `✍️ Reply to this message with your answer${approval.summary ? ` for: ${approval.summary}` : ""}.`,
+        },
       }
     }
 
