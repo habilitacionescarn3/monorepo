@@ -97,6 +97,15 @@ describe("ObservabilityStack", () => {
     // The facade's alarmFactoryDefaults.action (SnsAlarmActionStrategy →
     // BillingTopic) fixes that; this invariant keeps any future alarm —
     // facade or manual — from shipping actionless.
+    // Composite-input alarms are the documented exception: the backup-freshness
+    // stale-metric + db-running probe carry no direct action — they feed the
+    // `-backup-freshness-stale` CompositeAlarm, which carries the action. The
+    // composite pages; gating it on the db-running probe stops a cold-paused
+    // env (RDS stopped) from false-paging.
+    const COMPOSITE_INPUTS = new Set([
+      "monorepo-test-backup-freshness-stale-metric",
+      "monorepo-test-db-running-probe",
+    ])
     const all = template.findResources("AWS::CloudWatch::Alarm")
     for (const [logicalId, alarm] of Object.entries(all)) {
       const props = (
@@ -104,9 +113,23 @@ describe("ObservabilityStack", () => {
           Properties?: { AlarmName?: string; AlarmActions?: unknown[] }
         }
       ).Properties
+      if (props?.AlarmName && COMPOSITE_INPUTS.has(props.AlarmName)) continue
       expect(
         props?.AlarmActions?.length ?? 0,
         `${props?.AlarmName ?? logicalId} has no AlarmActions`,
+      ).toBeGreaterThanOrEqual(1)
+    }
+    // The composite itself must still notify.
+    const composites = template.findResources("AWS::CloudWatch::CompositeAlarm")
+    for (const [logicalId, alarm] of Object.entries(composites)) {
+      const props = (
+        alarm as {
+          Properties?: { AlarmName?: string; AlarmActions?: unknown[] }
+        }
+      ).Properties
+      expect(
+        props?.AlarmActions?.length ?? 0,
+        `${props?.AlarmName ?? logicalId} composite has no AlarmActions`,
       ).toBeGreaterThanOrEqual(1)
     }
   })
@@ -129,5 +152,79 @@ describe("ObservabilityStack", () => {
       expect(actions.length).toBe(1)
       expect(actions[0]?.Ref).toMatch(/^BillingTopic/)
     }
+  })
+
+  it("has the app-health + power-aware backup-freshness alarms (OBS-06 + INF-11)", () => {
+    for (const name of [
+      "monorepo-test-rds-connections-high",
+      "monorepo-test-web-server-errors-high",
+      "monorepo-test-api-server-errors-high",
+    ]) {
+      template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+        AlarmName: name,
+      })
+    }
+    // Backup freshness is power-aware (INF-11): the stale-metric child still
+    // treats MISSING data as breaching (a silent pipeline emits no log events
+    // at all), but it only pages when ANDed with the db-running probe in a
+    // composite alarm — so a deliberately cold-paused env (RDS stopped, no
+    // backups by design) does not false-page.
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      AlarmName: "monorepo-test-backup-freshness-stale-metric",
+      TreatMissingData: "breaching",
+      ComparisonOperator: "LessThanThreshold",
+    })
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      AlarmName: "monorepo-test-db-running-probe",
+      TreatMissingData: "notBreaching",
+    })
+    template.hasResourceProperties("AWS::CloudWatch::CompositeAlarm", {
+      AlarmName: "monorepo-test-backup-freshness-stale",
+    })
+  })
+
+  it("cwlogs-ingest sums all 7 service log groups (INF-8)", () => {
+    const alarms = template.findResources("AWS::CloudWatch::Alarm")
+    const ingest = Object.values(alarms).find(
+      (a) =>
+        (a as { Properties?: { AlarmName?: string } }).Properties?.AlarmName ===
+        "monorepo-test-cwlogs-ingest-high",
+    ) as { Properties?: { Metrics?: unknown[] } } | undefined
+    const serialized = JSON.stringify(ingest?.Properties?.Metrics ?? [])
+    expect(serialized).toContain(
+      "web + api + tunnel + admin + pgbouncer + cerbos + openfga",
+    )
+  })
+
+  it("ecr-pull-anomaly includes the admin repo (INF-9)", () => {
+    const alarms = template.findResources("AWS::CloudWatch::Alarm")
+    const pulls = Object.values(alarms).find(
+      (a) =>
+        (a as { Properties?: { AlarmName?: string } }).Properties?.AlarmName ===
+        "monorepo-test-ecr-pull-anomaly",
+    ) as { Properties?: { Metrics?: unknown[] } } | undefined
+    const serialized = JSON.stringify(pulls?.Properties?.Metrics ?? [])
+    expect(serialized).toContain("web + api + admin")
+  })
+
+  it("ECS task-stopped EventBridge rule filters to crash reasons only (OBS-06a)", () => {
+    template.hasResourceProperties("AWS::Events::Rule", {
+      Name: "monorepo-test-ecs-task-stopped",
+      EventPattern: {
+        source: ["aws.ecs"],
+        "detail-type": ["ECS Task State Change"],
+        detail: {
+          lastStatus: ["STOPPED"],
+          stoppedReason: [
+            { prefix: "Essential container" },
+            { prefix: "Task failed container health checks" },
+          ],
+        },
+      },
+    })
+  })
+
+  it("creates the 2 server-error metric filters (OBS-06c)", () => {
+    template.resourceCountIs("AWS::Logs::MetricFilter", 2)
   })
 })
