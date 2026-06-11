@@ -38,6 +38,7 @@
       "outputLogs": "new-only"
     },
     "lint": {
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
     },
     "format": {
@@ -49,13 +50,16 @@
       "env": ["AWS_ACCOUNT_ID", "APP_DOMAIN"]
     },
     "test": {
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
-      "env": ["HOME"]
+      "env": ["HOME"],
+      "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*"]
     },
     "test:coverage": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*"]
     },
     "build-storybook": {
       "dependsOn": ["^build"],
