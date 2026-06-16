@@ -286,10 +286,15 @@ export function sanitizeError(
   err: unknown,
   id: string,
 ): { message: string; id: string } {
-  const raw = err instanceof Error ? err.message : String(err)
+  // Cap raw length BEFORE the (super-linear) redaction scan: the client-error
+  // routes feed unbounded POST bodies through here, so an unbounded string could
+  // pin the event loop. 2000 >> the 300-char output window, so any address that
+  // reaches the output is still fully redacted before truncation.
+  const raw = (err instanceof Error ? err.message : String(err)).slice(0, 2000)
   // Redact email addresses: an error message can echo a user-supplied address
   // (e.g. a transport / validation error), which must not reach a Telegram
-  // message, a Linear issue body, or a CloudWatch log line.
+  // message, a Linear issue body, or a CloudWatch log line. ASCII addresses only
+  // — unicode/IDN locals are out of scope for this best-effort gate.
   const message = raw
     .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, "<redacted-email>")
     .replace(/\s+/g, " ")

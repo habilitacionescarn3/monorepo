@@ -242,6 +242,15 @@ describe("sanitizeError", () => {
   it("handles non-Error values", () => {
     expect(sanitizeError("plain string", "z").message).toBe("plain string")
   })
+
+  it("stays bounded on huge adversarial input (no ReDoS / event-loop stall)", () => {
+    const huge = "a".repeat(100_000) + "@" + "b".repeat(100_000) + ".com"
+    const start = performance.now()
+    const { message } = sanitizeError(huge, "z")
+    // Without the pre-cap the O(n^2) scan would take seconds; capped it is ~0ms.
+    expect(performance.now() - start).toBeLessThan(500)
+    expect(message.length).toBeLessThanOrEqual(300)
+  })
 })
 
 describe("notifierFromEnv", () => {
