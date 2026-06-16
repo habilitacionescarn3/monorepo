@@ -276,16 +276,25 @@ export function notifierFromEnv(
 }
 
 /**
- * Reduce an error to a safe one-liner for the bot. NEVER includes stack, payload, or PII —
- * just `message` (trimmed, ≤300 chars) + a stable correlation `id` (requestId / jobId / generated).
- * The full stack belongs in Sentry, not in a Telegram message or a Linear issue body.
+ * Reduce an error to a safe one-liner for the bot. NEVER includes stack or
+ * payload, and email addresses in the message are redacted to `<redacted-email>`,
+ * so the result is safe to surface. Returns `message` (trimmed, ≤300 chars) + a
+ * stable correlation `id` (requestId / jobId / generated). The full stack belongs
+ * in Sentry, not in a Telegram message or a Linear issue body.
  */
 export function sanitizeError(
   err: unknown,
   id: string,
 ): { message: string; id: string } {
   const raw = err instanceof Error ? err.message : String(err)
-  const message = raw.replace(/\s+/g, " ").trim().slice(0, 300)
+  // Redact email addresses: an error message can echo a user-supplied address
+  // (e.g. a transport / validation error), which must not reach a Telegram
+  // message, a Linear issue body, or a CloudWatch log line.
+  const message = raw
+    .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, "<redacted-email>")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300)
   return { message, id }
 }
 

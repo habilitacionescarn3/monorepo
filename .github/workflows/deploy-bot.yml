@@ -79,7 +79,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/bot
-          wranglerVersion: "4.94.0"
+          wranglerVersion: "4.100.0"
           command: deploy
 
       - name: Apply D1 migrations (remote)
