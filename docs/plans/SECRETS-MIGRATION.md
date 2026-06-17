@@ -124,7 +124,7 @@ This plan is structured for autonomous execution with **advisor checkpoints** at
 | 11  | Audit device: file-based on VPS, Day 1                                                                                               | Loki/S3 shipping deferred ([AFF-244](https://linear.app/hapddev/issue/AFF-244))                                                                                                                                                                                                                                                |
 | 12  | Local dev: keep `scripts/generate-env.sh` as-is                                                                                      | Solo dev, no team sharing pressure yet                                                                                                                                                                                                                                                                                         |
 | 13  | Pre-commit: add `infisical scan` alongside existing gitleaks in `lefthook.yml`                                                       | 6-line addition, defense in depth                                                                                                                                                                                                                                                                                              |
-| 14  | Secret-escrow store: **macOS Keychain (encrypted iCloud sync) + paper-at-safe-deposit**                                              | No 1Password (operator does not use it); Keychain is OS-native, paper is the off-machine survival path                                                                                                                                                                                                                         |
+| 14  | Secret-escrow store: **macOS Keychain (encrypted iCloud sync) + offline escrow**                                                     | No 1Password (operator does not use it); Keychain is OS-native, offline escrow is the off-machine survival path                                                                                                                                                                                                                |
 
 ---
 
@@ -134,7 +134,7 @@ Operations that are one-time, manual, and unrecoverable. Treat with caution; adv
 
 | Op                                             | When                      | Why irreversible                                                                                                                                                                                                                                                                                                                                                  | Mitigation                                                                                                                                                                                                                                                                                                                                            |
 | ---------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vault operator init`                          | Once during M1            | Generates 5 **recovery keys** + initial root token. With KMS auto-unseal enabled Vault uses recovery keys (NOT Shamir unseal keys) — recovery keys authorize root-token regeneration, rekey, etc.; they CANNOT reseal/unseal the data store. If both KMS and the recovery keys are lost, data is unrecoverable; restore from M2 restic snapshot is the only path. | Split keys: 3 in distinct macOS Keychain entries on operator laptop (encrypted iCloud sync), 2 on printed paper at a separate physical location (bank safe-deposit). Initial root token NOT revoked at M1 close — kept until M3 verification + 24h soak (see M3.5).                                                                                   |
+| `vault operator init`                          | Once during M1            | Generates 5 **recovery keys** + initial root token. With KMS auto-unseal enabled Vault uses recovery keys (NOT Shamir unseal keys) — recovery keys authorize root-token regeneration, rekey, etc.; they CANNOT reseal/unseal the data store. If both KMS and the recovery keys are lost, data is unrecoverable; restore from M2 restic snapshot is the only path. | Split keys: 3 in distinct macOS Keychain entries on operator laptop (encrypted iCloud sync), 2 in offline escrow (off-repo). Initial root token NOT revoked at M1 close — kept until M3 verification + 24h soak (see M3.5).                                                                                                                           |
 | AWS KMS CMK creation                           | Once during M1            | If accidentally deleted, Vault can never auto-unseal — recovery keys cannot rescue it. Vault data stays sealed forever.                                                                                                                                                                                                                                           | Create via CDK with `RemovalPolicy.RETAIN` + `enableKeyRotation: true` + a `kms:ScheduleKeyDeletion` deny statement in the key policy. This gives IaC tracking _and_ deletion protection; mirrors the `RemovalPolicy.RETAIN` pattern at `app-stack.ts:329-332`. Out-of-band runbook step pre-deploy: confirm `cdk diff` shows no `[-] AWS::KMS::Key`. |
 | `vault token revoke <initial-root-token>`      | Once during M3.5 (NOT M3) | If OIDC integration regresses post-revocation, operator is locked out.                                                                                                                                                                                                                                                                                            | Separate from M3 verification. Only revoke after 24h of successful OIDC logins + at least one ECS task using AWS IAM Auth. Keep recovery keys readily available throughout this window (they can regenerate a fresh root token via `vault operator generate-root` if OIDC breaks).                                                                    |
 | Deletion of legacy AWS Secrets Manager entries | In M4.5 only              | One-way operation.                                                                                                                                                                                                                                                                                                                                                | NEVER delete in M4. Migrate values in M4, observe stable reads for 30 days, delete in M4.5.                                                                                                                                                                                                                                                           |
@@ -194,7 +194,7 @@ Each milestone has: Goal → Tasks → Verification → Rollback. Five milestone
      - Key policy deny statement on `kms:ScheduleKeyDeletion` for everyone except a designated break-glass principal
      - Region: eu-central-1 (single-region; same as the rest of the AWS footprint)
    - Create a dedicated IAM user `vault-unseal-vps` with **only** `kms:Encrypt`, `kms:Decrypt`, `kms:DescribeKey` on the new Key (scoped resource ARN, not `*`)
-   - Generate access keys for that user; record Access Key ID + Secret in macOS Keychain entries on operator laptop + printed paper at safe-deposit
+   - Generate access keys for that user; record Access Key ID + Secret in macOS Keychain entries on operator laptop + offline escrow
    - Set a 90-day rotation reminder (calendar / Linear) for the static access keys
    - Pre-deploy: `cdk diff` must show **no** `[-] AWS::KMS::Key` resource — if it does, abort
 
@@ -279,7 +279,7 @@ Each milestone has: Goal → Tasks → Verification → Rollback. Five milestone
    - Cloudflare R2 API token (scoped to bucket, read+write)
    - Backblaze B2 bucket `afframe-vault-backup-secondary`
    - B2 application key (scoped to bucket)
-   - Restic repo password: 32-byte random, stored in macOS Keychain + paper at safe-deposit
+   - Restic repo password: 32-byte random, stored in macOS Keychain + offline escrow
 
 2. **Restic install + repo init**:
    - `apt install restic` on VPS
@@ -318,7 +318,7 @@ Each milestone has: Goal → Tasks → Verification → Rollback. Five milestone
 - Backup ran successfully twice (one to R2, one to B2)
 - DR restore drill verified end-to-end
 - 7 consecutive days of clean Vault operation (auto-unseal, audit log flowing, no container restarts)
-- Restic repo passwords confirmed in macOS Keychain + safe-deposit
+- Restic repo passwords confirmed in macOS Keychain + offline escrow
 
 **Verification**:
 
@@ -420,17 +420,17 @@ Each milestone has: Goal → Tasks → Verification → Rollback. Five milestone
    - Choice A: GHA workflow `sync-vault-to-ssm.yml` triggered on Vault webhook (Vault sends notification → workflow pulls + writes to SSM)
    - Choice B: Systemd timer on VPS runs every 5 minutes, `vault kv get` then `aws ssm put-parameter`
    - **Pick B for simplicity** — VPS has Vault locally, AWS CLI available, no external orchestration needed
-   - Script at `/usr/local/sbin/vault-to-ssm-sync.sh`:
-     - Loop over: `(staging, production) × (better-auth-secret, resend-api-key)`
-     - For each: `vault kv get -field=value platform/data/${env}/${name}` → `aws ssm put-parameter --name /monorepo/${env}/${name} --type SecureString --overwrite --value -`
-     - Skip if Vault value matches current SSM value (avoid spurious writes)
-     - On each successful sync, write a heartbeat: `aws ssm put-parameter --name /monorepo/${env}/sync-heartbeat --value $(date -u +%s) --overwrite`
+   - Script at `/usr/local/sbin/vault-to-ssm-sync` (as built):
+     - Loop over: `(staging, production) × (better-auth-secret, resend-api-key, notify-shared-secret)`
+     - Vault preflight (`vault token lookup`) — sealed Vault / expired token aborts the run with exit 1 so liveness is withheld and the staleness alarm + drift workflow trip, instead of skip-all-keys being counted as a clean pass.
+     - Change detection by **local state** on the VPS (`/var/lib/vault-to-ssm`, systemd `StateDirectory`, root-only): per key, the sha256 of the last-synced plaintext + the SSM parameter `Version` returned by our own PutParameter. Vault-side change → hash mismatch → rewrite. SSM-side tamper → `GetParameter` _without_ decryption (metadata only, no KMS) shows an unexpected `Version` → heal from Vault within one 5-min cycle. Steady state costs **zero KMS** (the original decrypt-and-compare burned ~17k KMS requests/10 days — 85% of the 20k/mo Free Tier). Nothing secret-derived is stored in AWS: a sha256 of a structured secret in a plaintext param would be an offline brute-force target.
+     - On each clean env pass: write `/monorepo/${env}/sync-heartbeat` (epoch seconds, **type String** — not secret, no KMS; consumed by `secrets-drift.yml` and the post-deploy verify in `_deploy-aws.yml`) and emit a CloudWatch liveness datapoint `Monorepo/VaultSync SyncSuccess{Env=${env}}=1`.
    - Timer: every 5 minutes
    - First run manual to bootstrap initial values
 
-3. **Drift / staleness detection**:
-   - CloudWatch alarm: alarm if the SSM heartbeat parameter `/monorepo/${env}/sync-heartbeat` is older than 15 minutes (use the metric value parsed from the parameter's `LastModifiedDate` via a tiny EventBridge-triggered Lambda, OR use a CloudWatch synthetic via canary)
-   - CI smoke test (`.github/workflows/secrets-drift.yml`, runs daily): for each Vault-backed key, read from Vault, read from SSM, fail if values diverge
+3. **Drift / staleness detection** (as built):
+   - CloudWatch alarm `monorepo-${env}-vault-ssm-sync-stale` (in `observability-stack.ts`): fires when no `Monorepo/VaultSync SyncSuccess` datapoint lands for 15 min (3 × 5-min periods, `treatMissingData: BREACHING`), wired to the regional `BillingTopic`. This is the heartbeat alarm the original plan described but never built — now backed by a real metric instead of an unbuilt `LastModifiedDate` Lambda.
+   - CI smoke test (`.github/workflows/secrets-drift.yml`, runs daily): for each Vault-backed key, read from Vault, read from SSM, fail if values diverge; also fails if either env's `sync-heartbeat` is > 15 min stale
    - This guards against silent rot between deploys
 
 4. **CDK refactor** (full enumeration; the plan's original 7-line list was incomplete — actual touch surface is ~15 lines).

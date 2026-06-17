@@ -41,7 +41,7 @@ jobs:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -118,7 +118,7 @@ jobs:
           # makes wrangler-action reinstall a different version and rewrite
           # package.json, which then trips pnpm's deps-status check in the
           # "Push TURBO_TOKEN" step (ERR_PNPM_OUTDATED_LOCKFILE).
-          wranglerVersion: "4.94.0"
+          wranglerVersion: "4.100.0"
           command: deploy
 
       - name: Push TURBO_TOKEN as Worker secret (stdin-piped)

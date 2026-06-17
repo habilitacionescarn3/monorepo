@@ -63,7 +63,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
 
@@ -99,7 +99,7 @@ jobs:
 
       - if: steps.guard.outputs.exists == 'true' && always()
         name: Upload Trivy filesystem SARIF
-        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # zizmor: ignore[impostor-commit]
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # zizmor: ignore[impostor-commit]
         with:
           sarif_file: trivy-fs-${{ matrix.app }}.sarif
           category: trivy-filesystem-${{ matrix.app }}
@@ -111,12 +111,25 @@ jobs:
 
       - if: steps.guard.outputs.exists == 'true'
         name: Build local image (no push)
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker buildx build --platform linux/arm64 \
-            --load -t local/${{ matrix.app }}:scan \
-            -f apps/${{ matrix.app }}/Dockerfile .
+        # docker/build-push-action instead of a raw `docker buildx build` so
+        # the GitHub Actions cache backend (type=gha) is wired up — the raw
+        # CLI has no access to ACTIONS_RUNTIME_TOKEN. Mirrors the deploy
+        # pipeline's cache setup (_deploy-aws.yml build-images job) with a
+        # scan-scoped cache key, cutting the QEMU arm64 rebuild (~150-237s
+        # per app cold) to a cache-hit restore on unchanged layers (CICD-06).
+        # provenance/sbom off to keep a single loadable image manifest.
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          tags: local/${{ matrix.app }}:scan
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=scan-${{ matrix.app }}
+          cache-to: type=gha,scope=scan-${{ matrix.app }},mode=max
 
       - if: steps.guard.outputs.exists == 'true'
         name: Trivy image scan
@@ -131,7 +144,7 @@ jobs:
 
       - if: steps.guard.outputs.exists == 'true' && always()
         name: Upload Trivy image SARIF
-        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # zizmor: ignore[impostor-commit]
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # zizmor: ignore[impostor-commit]
         with:
           sarif_file: trivy-image-${{ matrix.app }}.sarif
           category: trivy-container-${{ matrix.app }}

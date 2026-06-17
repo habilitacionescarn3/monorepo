@@ -20,14 +20,14 @@
   "dependencies": {
     "@workspace/shared": "workspace:*",
     "openapi-fetch": "^0.17.0",
-    "zod": "^4.4.2"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
-    "eslint": "^10.4.0",
+    "eslint": "^10.4.1",
     "openapi-typescript": "^7.13.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   }
 }

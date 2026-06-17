@@ -23,7 +23,7 @@ import type { Construct } from "constructs"
  *      Key ARN — never `Resource: *`. The user has no console access; only
  *      programmatic credentials, generated out-of-band by the operator via
  *      `aws iam create-access-key --user-name vault-unseal-vps` after the
- *      first deploy. Credentials live in macOS Keychain + paper-at-safe-deposit
+ *      first deploy. Credentials live in macOS Keychain + offline escrow
  *      per `docs/plans/SECRETS-MIGRATION.md` § irreversible-ops register.
  *      Rotate the access key every 90 days.
  *
@@ -123,23 +123,33 @@ export class SecretsStack extends Stack {
     //
     // Identity used by /usr/local/sbin/vault-to-ssm-sync on the VPS to
     // mirror Vault `platform/{staging,production}/{better-auth-secret,
-    // resend-api-key}` into AWS SSM SecureString — the runtime cache that
-    // ECS reads at task start via EcsSecret.fromSsmParameter.
+    // resend-api-key,notify-shared-secret}` into AWS SSM SecureString — the
+    // runtime cache that ECS reads at task start via
+    // EcsSecret.fromSsmParameter.
     //
-    // Permissions scoped to the 4 secret params + 2 heartbeat params, plus
-    // kms:GenerateDataKey on the AWS-managed `alias/aws/ssm` key (default
-    // SecureString encryption). No KMS access to the Vault auto-unseal CMK
-    // (different blast radius). No ssm:DeleteParameter (a compromised key
-    // can only overwrite values, never erase tracking history).
+    // Permissions scoped to the 6 SecureString secret params + 2 String
+    // heartbeat params, plus write-path KMS (kms:Encrypt +
+    // kms:GenerateDataKey) via the AWS-managed `alias/aws/ssm` key and
+    // cloudwatch:PutMetricData on the Monorepo/VaultSync namespace (the
+    // sync-liveness metric). No kms:Decrypt — the script detects change via
+    // local state + the parameter Version, never by reading a SecureString
+    // back. No KMS access to the Vault auto-unseal CMK (different blast
+    // radius). No ssm:DeleteParameter (a compromised key can only overwrite
+    // values, never erase tracking history).
     //
     // Access keys generated out-of-band:
     //   aws iam create-access-key --user-name vault-ssm-sync
-    // and stored in macOS Keychain + paper-at-safe-deposit. Rotate every
+    // and stored in macOS Keychain + offline escrow. Rotate every
     // 90 days.
     this.vaultSsmSyncUser = new User(this, "VaultSsmSyncUser", {
       userName: "vault-ssm-sync",
     })
 
+    // sync-heartbeat is type String (epoch seconds, not secret — costs no
+    // KMS) and is consumed by secrets-drift.yml + the post-deploy verify in
+    // _deploy-aws.yml. Change detection state (sha256 of plaintext + last
+    // SSM Version) lives locally on the VPS, never in AWS — a hash of a
+    // structured secret in a plaintext param would be a brute-force target.
     const syncParamArns = [
       "staging/better-auth-secret",
       "staging/resend-api-key",
@@ -163,20 +173,44 @@ export class SecretsStack extends Stack {
     )
 
     // SecureString uses the AWS-managed `alias/aws/ssm` key by default.
-    // The principal that writes/reads a SecureString needs kms:GenerateDataKey
-    // (on create/update) + kms:Decrypt (on read). Resource is `*` here
+    // Writing a standard-tier SecureString calls kms:Encrypt (CloudTrail
+    // confirms); kms:GenerateDataKey covers advanced-tier params. No
+    // kms:Decrypt: the sync never reads a SecureString back (change
+    // detection is local-state + parameter Version). Resource is `*` here
     // because AWS-managed-key resource policies do not accept Allow grants
     // from another principal's policy on a Resource-scoped statement — the
     // alias/aws/ssm key's own policy gates access by the underlying SSM API.
-    // No customer-managed KMS key for SSM in scope at MVP.
+    // Honest caveat: that key policy admits any same-account principal via
+    // SSM, so dropping Decrypt here documents intent rather than enforcing
+    // it — true read-prevention needs a customer-managed CMK, out of scope
+    // at MVP (and the VPS config holds the Vault token anyway, which is the
+    // same plaintexts).
     this.vaultSsmSyncUser.addToPolicy(
       new PolicyStatement({
         sid: "VaultSsmSyncKmsForSsmDefaultKey",
-        actions: ["kms:GenerateDataKey", "kms:Decrypt"],
+        actions: ["kms:Encrypt", "kms:GenerateDataKey"],
         resources: ["*"],
         conditions: {
           StringEquals: {
             "kms:ViaService": `ssm.${this.region}.amazonaws.com`,
+          },
+        },
+      }),
+    )
+
+    // Sync-liveness heartbeat. After each clean pass the script emits a
+    // Monorepo/VaultSync `SyncSuccess` datapoint; the observability stack's
+    // `vault-ssm-sync-stale` alarm fires if none arrives for 15 min.
+    // PutMetricData has no resource-level scoping, so the namespace
+    // condition is the boundary — this key can write nothing else.
+    this.vaultSsmSyncUser.addToPolicy(
+      new PolicyStatement({
+        sid: "VaultSsmSyncPutLivenessMetric",
+        actions: ["cloudwatch:PutMetricData"],
+        resources: ["*"],
+        conditions: {
+          StringEquals: {
+            "cloudwatch:namespace": "Monorepo/VaultSync",
           },
         },
       }),
@@ -197,7 +231,7 @@ export class SecretsStack extends Stack {
     new CfnOutput(this, "VaultUnsealUserName", {
       value: this.vaultUnsealUser.userName,
       description:
-        "IAM user name. Generate access keys with `aws iam create-access-key --user-name vault-unseal-vps` after this stack deploys; store output in macOS Keychain + paper-at-safe-deposit.",
+        "IAM user name. Generate access keys with `aws iam create-access-key --user-name vault-unseal-vps` after this stack deploys; store output in macOS Keychain + offline escrow.",
     })
 
     new CfnOutput(this, "VaultAwsAuthVerifierUserName", {
@@ -209,7 +243,7 @@ export class SecretsStack extends Stack {
     new CfnOutput(this, "VaultSsmSyncUserName", {
       value: this.vaultSsmSyncUser.userName,
       description:
-        "IAM user that /usr/local/sbin/vault-to-ssm-sync on the VPS authenticates as while mirroring Vault → SSM SecureString every 5 min (M4). Generate access keys with `aws iam create-access-key --user-name vault-ssm-sync`; store in macOS Keychain + paper-at-safe-deposit. Rotate every 90 days.",
+        "IAM user that /usr/local/sbin/vault-to-ssm-sync on the VPS authenticates as while mirroring Vault → SSM SecureString every 5 min (M4). Generate access keys with `aws iam create-access-key --user-name vault-ssm-sync`; store in macOS Keychain + offline escrow. Rotate every 90 days.",
     })
   }
 }

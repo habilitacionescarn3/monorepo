@@ -17,6 +17,13 @@ updates:
       include: scope
     cooldown:
       default-days: 7
+    ignore:
+      # Pinned in pnpm-workspace.yaml overrides for cause (auth-critical build
+      # break / eslint-plugin compat). Bump deliberately + retest, never via a
+      # group bump — see the override comments in pnpm-workspace.yaml.
+      - dependency-name: "better-auth"
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions — group everything together so SHA bumps land in one PR
   - package-ecosystem: github-actions
@@ -52,6 +59,20 @@ updates:
       day: monday
     groups:
       apps-api-docker:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore"
+      include: scope
+
+  # Docker base image used by apps/admin Dockerfile (the admin Next.js
+  # runtime — deployed prod container, digest-pinned like web/api).
+  - package-ecosystem: docker
+    directory: /apps/admin
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      apps-admin-docker:
         patterns: ["*"]
     commit-message:
       prefix: "chore"
@@ -107,6 +128,23 @@ updates:
       day: monday
     groups:
       infra-compose-pgtap-docker:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore"
+      include: scope
+
+  # Image pins inside the local-dev compose stack
+  # (infra/compose/docker-compose.dev.yml: postgres-exporter, mailpit, plus
+  # the pgbouncer/cerbos pins that duplicate the CDK copies). The `docker`
+  # entries above only read Dockerfile FROM lines; the docker-compose
+  # ecosystem reads compose `image:` keys.
+  - package-ecosystem: docker-compose
+    directory: /infra/compose
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      infra-compose-images:
         patterns: ["*"]
     commit-message:
       prefix: "chore"

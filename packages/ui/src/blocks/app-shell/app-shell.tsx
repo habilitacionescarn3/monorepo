@@ -4,11 +4,8 @@ import * as React from "react"
 
 import { Logo } from "@workspace/ui/brand-assets"
 import { Button } from "@workspace/ui/components/button"
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@workspace/ui/components/resizable"
+import { Sheet, SheetContent, SheetTitle } from "@workspace/ui/components/sheet"
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { PanelLeftIcon, PanelRight } from "@workspace/ui/lib/icons"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -17,6 +14,14 @@ interface AppShellProps {
   rail?: React.ReactNode
   sidebar?: React.ReactNode
   assistant?: React.ReactNode
+  /**
+   * Mobile bottom navigation, rendered only below the `md` breakpoint
+   * (the rail is hidden there). Compose it from the app-shell block's
+   * `AppShellBottomNav` (which wires the `navigation-bottom-mobile`
+   * component) — or pass any node. When present, the content area
+   * reserves the bar's height at the bottom on mobile.
+   */
+  bottomNav?: React.ReactNode
   children?: React.ReactNode
   className?: string
   defaultSidebarOpen?: boolean
@@ -28,7 +33,7 @@ interface AppShellProps {
    *   - `"shell"`    (default) → the flat shell card (matches the main card).
    *   - `"dropdown"` → dropdown/popover-inspired card (rounded-lg + hairline
    *     border + popover surface). Outer shadow is intentionally omitted: the
-   *     resizable-panel wrapper clips it (see ASSISTANT_DROPDOWN_CARD).
+   *     panel's own `overflow` clips it (see ASSISTANT_DROPDOWN_CARD).
    * Flip by passing `assistantVariant="dropdown"` from the page.
    */
   assistantVariant?: "shell" | "dropdown"
@@ -59,25 +64,18 @@ const DEFAULT_LOGO = (
   />
 )
 
-// Single source of truth for sizes. JS values used by drag clamps;
-// `MAIN_MIN_WIDTH` is a string because react-resizable-panels expects
-// string sizes with a "px" suffix and doesn't accept CSS vars.
-const SIZES: {
-  sidebarDefault: number
-  sidebarMin: number
-  sidebarMax: number
-  assistantDefault: string
-  assistantMin: string
-  assistantMax: string
-  mainMin: string
-} = {
+// Single source of truth for sizes (px). Both the sidebar and the assistant
+// panel resize via plain flex + manual pointer drag — NOT
+// react-resizable-panels, whose pixel-sized panels preserve their pixel size
+// and DON'T reflow when the parent element (the window) resizes, which froze
+// the shell at its initial width and made it overflow on resize.
+const SIZES = {
   sidebarDefault: 236,
   sidebarMin: 160,
   sidebarMax: 360,
-  assistantDefault: "400px",
-  assistantMin: "200px",
-  assistantMax: "800px",
-  mainMin: "400px",
+  assistantDefault: 400,
+  assistantMin: 200,
+  assistantMax: 800,
 }
 
 // Shared card chrome — used by both the main card and the assistant
@@ -87,10 +85,10 @@ const SHELL_CARD_CLASS =
 
 // Optional assistant card variant (assistantVariant="dropdown") —
 // dropdown/popover-inspired: real `border` (not a ring) + `rounded-lg` +
-// popover surface. The panel lives inside a react-resizable-panels wrapper
-// whose `overflow:auto` clips outer ring/box-shadow, so a ring/shadow would
-// be invisible; a border lives inside the box → always renders, and
-// `foreground/10` matches the menu dropdown's hairline tone exactly.
+// popover surface. The panel's own `overflow-y-auto` clips an outer
+// ring/box-shadow, so a ring/shadow would be invisible; a border lives inside
+// the box → always renders, and `foreground/10` matches the menu dropdown's
+// hairline tone exactly.
 const ASSISTANT_DROPDOWN_CARD =
   "rounded-lg border border-foreground/10 bg-popover text-popover-foreground"
 
@@ -123,28 +121,41 @@ export function useAppShell(): AppShellContextValue | null {
  *   - Rail: 60px wide, top:0, flush left, 8px bottom inset.
  *   - Header: 40px tall, starts to the right of the rail, 16px right
  *     inset.
- *   - Content area: top:40, left:60, right:16, bottom:8.
- *   - Inside the content area, an OUTER `ResizablePanelGroup` splits
- *     the main card and the assistant card with a 10px-wide drag
- *     handle.
- *   - Inside the main card, sidebar + body use a plain CSS flex layout
- *     (NOT a ResizablePanelGroup). Sidebar has a state-driven px width;
- *     body is `flex-1`. This guarantees the sidebar width never changes
- *     when the OUTER (main↔assistant) handle is dragged — only the
- *     body absorbs that delta.
+ *   - Content area: top:40, left:60, right:16, bottom:8 — a plain CSS
+ *     flex row. The main card is `flex-1 min-w-0`, so it always tracks
+ *     the window width; the assistant card (when open) has a
+ *     state-driven px width with a 10px drag handle to its left.
+ *   - Inside the main card, sidebar + body are also a flex row. Sidebar
+ *     has a state-driven px width; body is `flex-1`.
  *
- * Sidebar resize handle:
- *   - 4px-wide transparent hit area with a 1px line inside that's
- *     visible only on hover (`group-hover:opacity-100`).
- *   - Uses Pointer Events + `setPointerCapture` so mouse, touch, and
- *     pen all work and the drag follows the pointer outside the
- *     element bounds — no `window` listeners required.
+ * Why flex, not react-resizable-panels: pixel-sized panels in that lib
+ * preserve their pixel size and DON'T reflow when the parent element
+ * resizes, so the shell froze at its initial width and overflowed on
+ * window resize. Plain flex tracks the parent; both the sidebar and the
+ * assistant are resized with manual Pointer-Events drag handles.
+ *
+ * Resize handles (sidebar + assistant):
+ *   - Transparent hit area with a 1px line; uses Pointer Events +
+ *     `setPointerCapture` so mouse, touch, and pen all work and the drag
+ *     follows the pointer outside the element bounds — no `window`
+ *     listeners required.
+ *
+ * Mobile (<md, 768px) — all visibility is CSS-driven (`max-md:` /
+ * `md:`), so SSR + first client paint render identical markup (no
+ * desktop→mobile flash):
+ *   - Rail hidden; header + content span the full width.
+ *   - Inline sidebar/assistant panels + drag handles hidden; the same
+ *     `sidebar` / `assistant` nodes open in left/right Sheets instead.
+ *     `useIsMobile` only routes the toggle handlers post-hydration.
+ *   - Optional `bottomNav` renders as a fixed bottom bar; the content
+ *     area reserves its height (3.5rem + safe-area inset).
  */
 export function AppShell({
   header,
   rail,
   sidebar,
   assistant,
+  bottomNav,
   children,
   className,
   assistantVariant = "shell",
@@ -153,10 +164,20 @@ export function AppShell({
   logo = DEFAULT_LOGO,
   logoHref,
 }: AppShellProps) {
+  const isMobile = useIsMobile()
   const [sidebarOpen, setSidebarOpen] = React.useState(defaultSidebarOpen)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
+  const [mobileAssistantOpen, setMobileAssistantOpen] = React.useState(false)
   const [sidebarWidth, setSidebarWidth] = React.useState(SIZES.sidebarDefault)
   const [assistantOpen, setAssistantOpen] = React.useState(defaultAssistantOpen)
+  const [assistantWidth, setAssistantWidth] = React.useState(
+    SIZES.assistantDefault,
+  )
   const dragStateRef = React.useRef<{
+    startX: number
+    startWidth: number
+  } | null>(null)
+  const assistantDragRef = React.useRef<{
     startX: number
     startWidth: number
   } | null>(null)
@@ -166,23 +187,41 @@ export function AppShell({
   // the DOM, but body styles we mutated need explicit cleanup.
   React.useEffect(() => {
     return () => {
-      if (dragStateRef.current) {
+      if (dragStateRef.current || assistantDragRef.current) {
         document.body.style.cursor = ""
         document.body.style.userSelect = ""
         dragStateRef.current = null
+        assistantDragRef.current = null
       }
     }
   }, [])
 
-  const toggleSidebar = React.useCallback(() => setSidebarOpen((s) => !s), [])
-  const toggleAssistant = React.useCallback(
-    () => setAssistantOpen((s) => !s),
-    [],
-  )
+  // Below md the panels live in Sheets, so the toggles (and the
+  // keyboard shortcuts + `useAppShell` consumers) route there. Clicks
+  // only happen post-hydration, where `isMobile` is reliable.
+  const toggleSidebar = React.useCallback(() => {
+    if (isMobile) setMobileSidebarOpen((s) => !s)
+    else setSidebarOpen((s) => !s)
+  }, [isMobile])
+  const toggleAssistant = React.useCallback(() => {
+    if (isMobile) setMobileAssistantOpen((s) => !s)
+    else setAssistantOpen((s) => !s)
+  }, [isMobile])
+  const assistantIsOpen = isMobile ? mobileAssistantOpen : assistantOpen
+  const sidebarIsOpen = isMobile ? mobileSidebarOpen : sidebarOpen
   const shellContext = React.useMemo<AppShellContextValue>(
-    () => ({ assistantOpen, toggleAssistant }),
-    [assistantOpen, toggleAssistant],
+    () => ({ assistantOpen: assistantIsOpen, toggleAssistant }),
+    [assistantIsOpen, toggleAssistant],
   )
+
+  // Crossing up to ≥md closes the mobile sheets so no modal overlay
+  // lingers over the desktop layout after a window resize.
+  React.useEffect(() => {
+    if (!isMobile) {
+      setMobileSidebarOpen(false)
+      setMobileAssistantOpen(false)
+    }
+  }, [isMobile])
 
   // Keyboard shortcuts: "B" toggles the sidebar, "S" toggles the
   // assistant. Skipped while typing in a field/contenteditable or when a
@@ -249,6 +288,44 @@ export function AppShell({
     document.body.style.userSelect = ""
   }
 
+  // Assistant resize: same Pointer-Events drag as the sidebar, but the
+  // handle sits to the panel's LEFT, so dragging left GROWS it (inverted
+  // delta).
+  const onAssistantHandlePointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (e.button !== undefined && e.button !== 0) return
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    assistantDragRef.current = { startX: e.clientX, startWidth: assistantWidth }
+    document.body.style.cursor = "col-resize"
+    document.body.style.userSelect = "none"
+  }
+
+  const onAssistantHandlePointerMove = (
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (!assistantDragRef.current) return
+    const delta = assistantDragRef.current.startX - e.clientX
+    const next = Math.max(
+      SIZES.assistantMin,
+      Math.min(SIZES.assistantMax, assistantDragRef.current.startWidth + delta),
+    )
+    setAssistantWidth(next)
+  }
+
+  const onAssistantHandlePointerUp = (
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (!assistantDragRef.current) return
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    }
+    assistantDragRef.current = null
+    document.body.style.cursor = ""
+    document.body.style.userSelect = ""
+  }
+
   return (
     <AppShellContext.Provider value={shellContext}>
       <div
@@ -261,7 +338,7 @@ export function AppShell({
         {rail !== undefined && (
           <aside
             data-slot="app-shell-rail"
-            className="absolute top-0 bottom-[var(--shell-bottom-inset)] left-0 flex w-[var(--shell-rail-width)] flex-col transition-[width] duration-200 ease-in-out"
+            className="absolute top-0 bottom-[var(--shell-bottom-inset)] left-0 flex w-[var(--shell-rail-width)] flex-col transition-[width] duration-200 ease-in-out max-md:hidden"
           >
             <div
               data-slot="app-shell-logomark"
@@ -285,114 +362,167 @@ export function AppShell({
         {header && (
           <header
             data-slot="app-shell-header"
-            className="absolute top-0 right-[var(--shell-right-inset)] left-[var(--shell-rail-width)] h-[var(--shell-header-height)] overflow-hidden transition-[left] duration-200 ease-in-out"
+            className="absolute top-0 right-[var(--shell-right-inset)] left-[var(--shell-rail-width)] h-[var(--shell-header-height)] overflow-hidden transition-[left] duration-200 ease-in-out max-md:left-0"
           >
             {header}
           </header>
         )}
 
-        <div className="absolute top-[var(--shell-header-height)] right-[var(--shell-right-inset)] bottom-[var(--shell-bottom-inset)] left-[var(--shell-rail-width)] transition-[left] duration-200 ease-in-out">
-          <ResizablePanelGroup orientation="horizontal">
-            <ResizablePanel minSize={SIZES.mainMin}>
-              <div
-                data-slot="app-shell-content"
-                className={cn(
-                  "relative flex h-full overflow-hidden",
-                  SHELL_CARD_CLASS,
-                )}
-              >
-                {sidebar !== undefined && (
-                  <>
-                    <aside
-                      data-slot="app-shell-sidebar"
-                      style={{ width: sidebarOpen ? sidebarWidth : 0 }}
-                      className="shrink-0 overflow-x-hidden overflow-y-auto transition-[width] duration-300 ease-in-out"
-                    >
-                      {sidebar}
-                    </aside>
-                    <div
-                      role="separator"
-                      aria-orientation="vertical"
-                      onPointerDown={onSidebarHandlePointerDown}
-                      onPointerMove={onSidebarHandlePointerMove}
-                      onPointerUp={onSidebarHandlePointerUp}
-                      onPointerCancel={onSidebarHandlePointerUp}
-                      className={cn(
-                        // 4px transparent hit area with 1px line inside
-                        // (always visible). `touch-none` blocks the
-                        // browser's drag-to-scroll on touch devices so
-                        // the resize gesture wins.
-                        "relative w-1 shrink-0 cursor-col-resize touch-none select-none",
-                        !sidebarOpen && "pointer-events-none invisible",
-                      )}
-                    >
-                      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border-subtle" />
-                    </div>
-                  </>
-                )}
-                <main
-                  data-slot="app-shell-main"
-                  className="relative h-full flex-1 overflow-auto"
-                >
-                  {sidebar !== undefined && (
-                    <div className="absolute top-2 left-2 z-10">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        aria-label={
-                          sidebarOpen ? "Collapse sidebar" : "Open sidebar"
-                        }
-                        onClick={toggleSidebar}
-                      >
-                        <PanelLeftIcon className="size-4 text-sidekick-icon" />
-                      </Button>
-                    </div>
-                  )}
-                  {assistant !== undefined && (
-                    <div className="absolute top-2 right-2 z-10">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        aria-label={
-                          assistantOpen ? "Close assistant" : "Open assistant"
-                        }
-                        onClick={toggleAssistant}
-                      >
-                        <PanelRight className="size-4 text-sidekick-icon" />
-                      </Button>
-                    </div>
-                  )}
-                  {children}
-                </main>
-              </div>
-            </ResizablePanel>
-
-            {assistantOpen && assistant !== undefined && (
+        <div
+          className={cn(
+            "absolute top-[var(--shell-header-height)] right-[var(--shell-right-inset)] bottom-[var(--shell-bottom-inset)] left-[var(--shell-rail-width)] flex transition-[left] duration-200 ease-in-out max-md:left-[var(--shell-right-inset)]",
+            bottomNav !== undefined &&
+              "max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))]",
+          )}
+        >
+          <div
+            data-slot="app-shell-content"
+            className={cn(
+              "relative flex h-full min-w-0 flex-1 overflow-hidden",
+              SHELL_CARD_CLASS,
+            )}
+          >
+            {sidebar !== undefined && (
               <>
-                <ResizableHandle className="w-[var(--shell-handle-width)] bg-transparent" />
-                <ResizablePanel
-                  defaultSize={SIZES.assistantDefault}
-                  minSize={SIZES.assistantMin}
-                  maxSize={SIZES.assistantMax}
-                  data-slot="app-shell-assistant"
+                <aside
+                  data-slot="app-shell-sidebar"
+                  style={{ width: sidebarOpen ? sidebarWidth : 0 }}
+                  className="shrink-0 overflow-x-hidden overflow-y-auto transition-[width] duration-300 ease-in-out max-md:hidden"
                 >
-                  <aside
-                    className={cn(
-                      "h-full overflow-x-hidden overflow-y-auto",
-                      assistantVariant === "dropdown"
-                        ? ASSISTANT_DROPDOWN_CARD
-                        : SHELL_CARD_CLASS,
-                    )}
-                  >
-                    {assistant}
-                  </aside>
-                </ResizablePanel>
+                  {sidebar}
+                </aside>
+                <div
+                  role="separator"
+                  aria-orientation="vertical"
+                  onPointerDown={onSidebarHandlePointerDown}
+                  onPointerMove={onSidebarHandlePointerMove}
+                  onPointerUp={onSidebarHandlePointerUp}
+                  onPointerCancel={onSidebarHandlePointerUp}
+                  className={cn(
+                    // 4px transparent hit area with 1px line inside
+                    // (always visible); the ::before overlay widens the
+                    // grab zone to 12px without adding layout width.
+                    // `touch-none` blocks the browser's drag-to-scroll
+                    // on touch devices so the resize gesture wins.
+                    "relative w-1 shrink-0 cursor-col-resize touch-none select-none before:absolute before:-inset-x-1 before:inset-y-0 max-md:hidden",
+                    !sidebarOpen && "pointer-events-none invisible",
+                  )}
+                >
+                  <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border-subtle" />
+                </div>
               </>
             )}
-          </ResizablePanelGroup>
+            <main
+              data-slot="app-shell-main"
+              className="relative h-full flex-1 overflow-auto"
+            >
+              {sidebar !== undefined && (
+                <div className="absolute top-2 left-2 z-10">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label={
+                      sidebarIsOpen
+                        ? isMobile
+                          ? "Close sidebar"
+                          : "Collapse sidebar"
+                        : "Open sidebar"
+                    }
+                    onClick={toggleSidebar}
+                    className="max-md:size-10"
+                  >
+                    <PanelLeftIcon className="size-4 text-sidekick-icon" />
+                  </Button>
+                </div>
+              )}
+              {assistant !== undefined && (
+                <div className="absolute top-2 right-2 z-10">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label={
+                      assistantIsOpen ? "Close assistant" : "Open assistant"
+                    }
+                    onClick={toggleAssistant}
+                    className="max-md:size-10"
+                  >
+                    <PanelRight className="size-4 text-sidekick-icon" />
+                  </Button>
+                </div>
+              )}
+              {children}
+            </main>
+          </div>
+
+          {assistantOpen && assistant !== undefined && (
+            <>
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                onPointerDown={onAssistantHandlePointerDown}
+                onPointerMove={onAssistantHandlePointerMove}
+                onPointerUp={onAssistantHandlePointerUp}
+                onPointerCancel={onAssistantHandlePointerUp}
+                className="relative w-[var(--shell-handle-width)] shrink-0 cursor-col-resize touch-none bg-transparent select-none before:absolute before:-inset-x-1 before:inset-y-0 max-md:hidden"
+              />
+              <aside
+                data-slot="app-shell-assistant"
+                style={{ width: assistantWidth }}
+                className={cn(
+                  "h-full shrink-0 overflow-x-hidden overflow-y-auto max-md:hidden",
+                  assistantVariant === "dropdown"
+                    ? ASSISTANT_DROPDOWN_CARD
+                    : SHELL_CARD_CLASS,
+                )}
+              >
+                {assistant}
+              </aside>
+            </>
+          )}
         </div>
+
+        {/* Mobile drawers — the SAME sidebar/assistant nodes, presented
+            as Sheets below md. Portal content mounts only while open. */}
+        {sidebar !== undefined && (
+          <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+            <SheetContent side="left" aria-describedby={undefined}>
+              <SheetTitle className="sr-only">Sidebar</SheetTitle>
+              <div
+                data-slot="app-shell-mobile-sidebar"
+                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+              >
+                {sidebar}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
+        {assistant !== undefined && (
+          <Sheet
+            open={mobileAssistantOpen}
+            onOpenChange={setMobileAssistantOpen}
+          >
+            <SheetContent side="right" aria-describedby={undefined}>
+              <SheetTitle className="sr-only">Assistant</SheetTitle>
+              <div
+                data-slot="app-shell-mobile-assistant"
+                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+              >
+                {assistant}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
+
+        {bottomNav !== undefined && (
+          <div
+            data-slot="app-shell-bottom-nav"
+            className="absolute inset-x-0 bottom-0 md:hidden"
+          >
+            {bottomNav}
+          </div>
+        )}
       </div>
     </AppShellContext.Provider>
   )

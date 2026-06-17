@@ -1,8 +1,8 @@
 # `@afframe/sdk` — TypeScript SDK Design
 
-> **[Concept]** Not implemented. Tracked under the developer-platform initiative ([`ADR-0023`](../adr/0023-public-api-developer-platform.md)).
+> **[Wip — implemented in-repo, not published.]** `packages/sdk` ships a working typed client (openapi-fetch over the generated spec, retries with Retry-After support, Plaid-envelope error classes, webhook signature verifier). It is `private: true` — no npm publish pipeline exists yet (tracked under the developer-platform initiative, [`ADR-0023`](../adr/0023-public-api-developer-platform.md)). Sections describing publishing/versioning remain design intent.
 
-Reference design for the official TypeScript client of `api.afframe.com/v1`.
+Design + usage reference for the official TypeScript client of `api.afframe.com/v1`.
 
 ---
 
@@ -31,7 +31,7 @@ Reference design for the official TypeScript client of `api.afframe.com/v1`.
 import { Afframe } from "@afframe/sdk"
 
 const afframe = new Afframe({
-  apiKey: process.env.AFFRAME_API_KEY!, // affk_live_... or affk_test_...
+  apiKey: process.env.AFFRAME_API_KEY!, // affk_live_... (sandbox affk_test_ keys: not issued yet)
   // Optional:
   baseUrl: "https://api.afframe.com", // default
   timeoutMs: 30_000, // default

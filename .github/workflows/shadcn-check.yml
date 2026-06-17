@@ -21,7 +21,7 @@ jobs:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -36,6 +36,15 @@ jobs:
           else
             echo "has_updates=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Ensure issue label exists
+        # DEP-01: `gh issue create --label X` fails when the label does not
+        # exist in the repo. Create idempotently — `|| true` swallows the
+        # "already exists" error.
+        if: steps.diff.outputs.has_updates == 'true'
+        run: gh label create shadcn-update --color 0E8A16 --description "Upstream shadcn/ui component drift" --repo "$GITHUB_REPOSITORY" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for existing issue
         if: steps.diff.outputs.has_updates == 'true'

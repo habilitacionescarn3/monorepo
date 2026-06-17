@@ -34,17 +34,17 @@ in [`docs/api/README.md`](api/README.md) and [`docs/api/API-REFERENCE.md`](api/A
 | `/v1/status`       | None    | Service health summary (proxies status.afframe.com)                |
 | `/v1/feedback`     | None    | Partner feedback ingestion (POST)                                  |
 
-Domain endpoints (invoices, accounts, journal entries) land with AFF-71.
+Domain endpoints (invoices, accounts, journal entries) are not yet implemented.
 
 ## Read these, in order
 
 1. **[AGENTS.md](../AGENTS.md)** — repo rules for AI agents. Architecture
    summary, component pattern, import rules, dependency-update coverage,
-   testing matrix, **Endpoint Addition Rules** (seven-step checklist).
+   testing matrix, **Endpoint Addition Rules** (six-step checklist).
 2. **[CONTRIBUTING.md](../CONTRIBUTING.md)** — human-contributor onboarding,
    commit conventions, branching.
 3. **[docs/runbooks/ENDPOINT-ADDITION-RUNBOOK.md](runbooks/ENDPOINT-ADDITION-RUNBOOK.md)**
-   — the seven-step endpoint procedure with full diffs.
+   — the six-step endpoint procedure with full diffs.
 4. **[docs/conventions/ENDPOINT-ADDITION.md](conventions/ENDPOINT-ADDITION.md)**
    — naming, auth scopes, tenancy, error variants, breaking-change
    triggers. The "what makes a good endpoint" reference.
@@ -80,5 +80,5 @@ Domain endpoints (invoices, accounts, journal entries) land with AFF-71.
 ## Skills
 
 `.claude/skills/add-endpoint/SKILL.md` walks you through the
-endpoint-addition seven-step. Invoke with `/add-endpoint <resource>` in
+endpoint-addition six-step. Invoke with `/add-endpoint <resource>` in
 Claude Code. Refuses hand-edits of `generated/` directories.

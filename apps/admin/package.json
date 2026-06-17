@@ -13,34 +13,30 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.4.0",
     "@tanstack/react-table": "^8.21.3",
     "@workspace/auth": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/i18n": "workspace:*",
-    "@workspace/shared": "workspace:*",
+    "@workspace/notify": "workspace:*",
     "@workspace/ui": "workspace:*",
-    "better-auth": "^1.6.11",
+    "better-auth": "~1.6.11",
     "drizzle-orm": "^0.45.2",
-    "lucide-react": "^1.16.0",
-    "next": "16.2.6",
-    "next-intl": "^4.12.0",
-    "next-themes": "^0.4.6",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "react-hook-form": "^7.76.1",
-    "sonner": "^2.0.7",
-    "zod": "^4.4.2"
+    "lucide-react": "^1.17.0",
+    "next": "16.2.7",
+    "next-intl": "^4.13.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
-    "@types/node": "^25.9.1",
-    "@types/react": "^19.2.15",
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
-    "eslint": "^10.4.0",
+    "eslint": "^10.4.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   }
 }
