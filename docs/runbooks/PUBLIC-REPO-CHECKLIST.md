@@ -294,7 +294,7 @@ Set (the `guard` job in `_deploy-aws.yml` short-circuits when `AWS_BOOTSTRAPPED 
 
 | Variable                         | Scope                   | Value                                                  |
 | -------------------------------- | ----------------------- | ------------------------------------------------------ |
-| `AWS_BOOTSTRAPPED`               | Repository              | `true` (set 2026-05-11 after the AWS-DEPLOY runbook)   |
+| `AWS_BOOTSTRAPPED`               | Repository              | `true` (set 2026-05-11 after the AWS-SETUP runbook)    |
 | `AWS_REGION`                     | Repository              | `eu-central-1`                                         |
 | `AWS_ACCOUNT_ID_MGMT`            | Repository              | `<TBD>`                                                |
 | `AWS_ACCOUNT_ID_LOG`             | Repository              | `<TBD>`                                                |
@@ -421,7 +421,7 @@ If any of these are off, return to the section that owns it.
 
 This checklist covers the GitHub side. The AWS side is in `docs/runbooks/AWS-SETUP.md`.
 
-Order: complete sections 1–11 here first → walk AWS-DEPLOY → set `vars.AWS_BOOTSTRAPPED=true` → first deploy.
+Order: complete sections 1–11 here first → walk AWS-SETUP → set `vars.AWS_BOOTSTRAPPED=true` → first deploy.
 
 ---
 
