@@ -4,6 +4,7 @@ import {
   createNotifier,
   isIgnorableError,
   notifierFromEnv,
+  sanitizeError,
 } from "./index.js"
 
 describe("isIgnorableError", () => {
@@ -209,6 +210,46 @@ describe("ask / answer", () => {
     )
     expect(state.decision).toBe("Approve")
     expect(calls).toBe(2)
+  })
+})
+
+describe("sanitizeError", () => {
+  it("redacts email addresses from the message", () => {
+    const out = sanitizeError(
+      new Error("resend.send failed for invitee@example.com: invalid"),
+      "req-1",
+    )
+    expect(out.message).not.toContain("invitee@example.com")
+    expect(out.message).toContain("<redacted-email>")
+    expect(out.id).toBe("req-1")
+  })
+
+  it("redacts every email and dotted/plus-tagged addresses", () => {
+    const { message } = sanitizeError(
+      new Error("to a.b+tag@sub.example.co.uk and c@d.io both bounced"),
+      "x",
+    )
+    expect(message).not.toMatch(/@/)
+    expect(message.match(/<redacted-email>/g)).toHaveLength(2)
+  })
+
+  it("collapses whitespace and caps at 300 chars", () => {
+    const { message } = sanitizeError("a\n\n  b\t".padEnd(500, "z"), "y")
+    expect(message.length).toBe(300)
+    expect(message.startsWith("a b z")).toBe(true)
+  })
+
+  it("handles non-Error values", () => {
+    expect(sanitizeError("plain string", "z").message).toBe("plain string")
+  })
+
+  it("stays bounded on huge adversarial input (no ReDoS / event-loop stall)", () => {
+    const huge = "a".repeat(100_000) + "@" + "b".repeat(100_000) + ".com"
+    const start = performance.now()
+    const { message } = sanitizeError(huge, "z")
+    // Without the pre-cap the O(n^2) scan would take seconds; capped it is ~0ms.
+    expect(performance.now() - start).toBeLessThan(500)
+    expect(message.length).toBeLessThanOrEqual(300)
   })
 })
 

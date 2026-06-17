@@ -17,6 +17,13 @@ updates:
       include: scope
     cooldown:
       default-days: 7
+    ignore:
+      # Pinned in pnpm-workspace.yaml overrides for cause (auth-critical build
+      # break / eslint-plugin compat). Bump deliberately + retest, never via a
+      # group bump — see the override comments in pnpm-workspace.yaml.
+      - dependency-name: "better-auth"
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions — group everything together so SHA bumps land in one PR
   - package-ecosystem: github-actions
